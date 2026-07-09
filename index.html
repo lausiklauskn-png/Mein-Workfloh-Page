@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#E0231B" id="metaTheme">
+<meta name="description" content="Muster Werbetechnik — Ihr Partner für Werbetechnik. Fahrzeugfolierung, Beschriftung, Digitaldruck, Schilder, Lichtwerbung, Gravur. Alles aus einer Hand.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Werbetechnik">
+<title>Muster Werbetechnik · Vorlage</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Crect%20width%3D%27100%27%20height%3D%27100%27%20rx%3D%2720%27%20fill%3D%27%2364748b%27/%3E%3Cpath%20d%3D%27M14%2030%20L26%2070%20L50%2038%20L74%2070%20L86%2030%27%20fill%3D%27none%27%20stroke%3D%27%23fff%27%20stroke-width%3D%2711%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+<style>
+/* ===================== Muster Werbetechnik · Design System ===================== */
+:root{
+  --accent:#E0231B; --accent-d:#b41a10; --accent-soft:#fde7e5;
+  --bg:#f4f6fb; --surface:#ffffff; --surface-2:#f8fafc; --line:#e4e8f0;
+  --ink:#16202e; --ink-2:#5a6b80; --ink-3:#90a0b4;
+  --ok:#16a34a; --ok-soft:#dcfce7; --warn:#d97706; --danger:#dc2626; --danger-soft:#fee2e2;
+  --radius:16px; --radius-s:10px; --shadow:0 4px 20px rgba(20,40,80,.08);
+  --shadow-lg:0 12px 40px rgba(20,40,80,.16); --fs:15px;
+  /* Glaskugel-Effekt (rot eingefärbt) */
+  --accent2:#ff6b62; --accent3:#b41a10;
+  --glow:0 0 26px rgba(224,35,27,.32),0 0 60px rgba(224,35,27,.16);
+}
+@property --rot { syntax:'<angle>'; inherits:false; initial-value:0deg; }
+/* Dunkel */
+html[data-theme="dark"]{
+  --bg:#0e1420; --surface:#161e2c; --surface-2:#1c2636; --line:#2a3648;
+  --ink:#eef2f8; --ink-2:#a4b2c6; --ink-3:#6f8098;
+  --accent-soft:#2a1414; --ok-soft:#10261a; --danger-soft:#2a1414;
+  --shadow:0 4px 20px rgba(0,0,0,.4); --shadow-lg:0 12px 40px rgba(0,0,0,.55);
+}
+/* Kontrast — Firmenfarben Schwarz / Rot / Weiß / Grau */
+html[data-theme="contrast"]{
+  --bg:#0a0a0c; --surface:#141417; --surface-2:#1c1c20; --line:#2c2c31;
+  --ink:#ffffff; --ink-2:#c6c6cc; --ink-3:#8a8a92;
+  --accent:#ff2a20; --accent-d:#E0231B; --accent-soft:#2a0e0c;
+  --ok-soft:#10261a; --danger-soft:#2a1414;
+  --shadow:0 4px 20px rgba(0,0,0,.6); --shadow-lg:0 16px 50px rgba(224,35,27,.18);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:var(--fs);
+  background:var(--bg);color:var(--ink);line-height:1.45;
+  padding-bottom:calc(76px + env(safe-area-inset-bottom));-webkit-text-size-adjust:100%}
+h1,h2,h3,h4{margin:0}
+input,select,textarea,button{font-family:inherit;font-size:1rem;color:inherit}
+a{color:var(--accent)}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}
+
+/* ---- Topbar ---- */
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--line);
+  padding:max(10px,env(safe-area-inset-top)) 14px 10px;display:flex;align-items:center;gap:10px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0;flex:1;cursor:pointer}
+.brand .logo{height:46px;width:auto;flex:none;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(0,0,0,.22))}
+.brand .nm{display:flex;flex-direction:column;justify-content:center;min-width:0;line-height:1.04}
+.brand .nm b{font-weight:900;font-size:1.2rem;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand .nm b i{font-style:normal;color:var(--accent)}
+.brand .nm small{font-weight:700;font-size:.66rem;letter-spacing:.6px;color:var(--ink-3);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-acts{display:flex;gap:8px}
+.iconbtn{border:1px solid var(--line);background:var(--surface-2);color:var(--ink);width:42px;height:42px;border-radius:12px;
+  font-size:19px;cursor:pointer;display:grid;place-items:center;transition:transform .12s,background .15s;text-decoration:none}
+.iconbtn:hover{background:var(--accent-soft)}
+.iconbtn:active{transform:scale(1.18)}
+
+/* ---- Desktop top-nav (wie Original) ---- */
+.topnav{display:none;gap:4px;flex:2;justify-content:center}
+.topnav button{border:none;background:transparent;color:var(--ink-2);font-weight:800;font-size:.82rem;letter-spacing:.4px;
+  text-transform:uppercase;padding:9px 13px;border-radius:10px;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.topnav button:hover{color:var(--accent)}
+.topnav button.on{background:var(--surface-2);color:var(--accent)}
+@media(min-width:980px){.topnav{display:flex}.bottomnav{display:none}.brand{flex:1}.tb-acts{flex:1;justify-content:flex-end}
+  body{padding-bottom:20px}.fab{bottom:24px}}
+
+/* ---- Search / filter ---- */
+#searchArea{display:none}
+#searchArea.on{display:block}
+.searchwrap{padding:12px 14px 4px;max-width:1040px;margin:0 auto}
+.searchbox{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);
+  border-radius:13px;padding:0 12px;box-shadow:var(--shadow)}
+.searchbox input{border:none;background:transparent;outline:none;flex:1;padding:12px 2px;font-size:1rem}
+.searchbox .si{font-size:18px;color:var(--ink-3)}
+.filterbar{display:flex;gap:6px;align-items:center;overflow-x:auto;padding:8px 14px 4px;scrollbar-width:none;max-width:1040px;margin:0 auto}
+.filterbar::-webkit-scrollbar{display:none}
+.pill{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:999px;
+  padding:5px 13px;font-size:.78rem;font-weight:700;line-height:1.35;cursor:pointer;transition:transform .12s,all .15s;white-space:nowrap}
+.pill:active{transform:scale(1.08)}
+.pill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ---- Screens ---- */
+main{padding:8px 14px 28px;max-width:1040px;margin:0 auto}
+.screen{display:none}.screen.on{display:block;animation:fade .28s}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.secttitle{display:flex;align-items:center;gap:11px;margin:26px 4px 12px}
+.secttitle .bar{width:6px;align-self:stretch;min-height:26px;border-radius:3px;background:var(--accent)}
+.secttitle h2{font-size:1.5rem;font-weight:900;letter-spacing:-.5px;color:var(--accent)}
+.secttitle .sub{color:var(--ink-2);font-size:.86rem;font-weight:600;margin-top:2px}
+.pagehead{font-size:1.9rem;font-weight:900;letter-spacing:-.8px;color:var(--accent);margin:14px 4px 6px;line-height:1.05}
+.lead{color:var(--ink-2);font-size:1rem;line-height:1.6;margin:8px 4px 4px;max-width:760px}
+.lead b{color:var(--ink)}
+
+/* ---- Hero ---- */
+.hero{position:relative;border-radius:22px;overflow:hidden;margin-top:8px;box-shadow:var(--shadow-lg);
+  border:1px solid var(--line);min-height:320px;display:flex;align-items:flex-end}
+.hero .hph{position:absolute;inset:0;background:linear-gradient(135deg,#1a1a1d 0%,#262629 55%,#3a3a3e 100%)}
+.hero .hph img{width:100%;height:100%;object-fit:cover;display:block}
+.hero .hscrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,12,.15) 0%,rgba(10,10,12,.4) 45%,rgba(10,10,12,.88) 100%)}
+.hero .hcont{position:relative;padding:26px 22px 24px;color:#fff;z-index:2;max-width:680px}
+.hero .htag{display:inline-block;background:var(--accent);color:#fff;font-weight:800;font-size:.72rem;letter-spacing:.6px;
+  text-transform:uppercase;padding:5px 12px;border-radius:999px;margin-bottom:12px}
+.hero h1{font-size:2.1rem;line-height:1.05;font-weight:900;letter-spacing:-1px;text-shadow:0 2px 18px rgba(0,0,0,.4)}
+.hero h1 i{font-style:normal;color:var(--accent);text-shadow:0 2px 18px rgba(224,35,27,.5)}
+.hero p{margin:12px 0 18px;font-size:1.04rem;line-height:1.5;color:#eef1f6;max-width:540px;text-shadow:0 1px 10px rgba(0,0,0,.4)}
+.hero .hbtns{display:flex;gap:10px;flex-wrap:wrap}
+@media(min-width:640px){.hero{min-height:420px}.hero h1{font-size:2.9rem}}
+
+/* ---- Buttons: Glas-Cabochon (rot) ---- */
+.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800;
+  border-radius:14px;padding:13px 20px;font-size:1rem;cursor:pointer;border:1px solid transparent;overflow:hidden;
+  text-decoration:none;line-height:1.2;color:#fff;
+  transform:perspective(640px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transform-style:preserve-3d;
+  transition:transform .14s ease,box-shadow .2s ease;
+  box-shadow:inset 0 2px 1px rgba(255,255,255,.6),inset 0 -5px 9px rgba(0,0,0,.42),
+    inset 11px 0 17px rgba(255,255,255,.06),inset -11px 0 19px rgba(0,0,0,.32),
+    inset 0 0 0 1px rgba(255,255,255,.12),0 14px 30px rgba(0,0,0,.30),0 4px 8px rgba(0,0,0,.22)}
+.btn::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:
+    radial-gradient(108px 76px at var(--mx,50%) var(--my,24%),rgba(255,255,255,.72),transparent 56%),
+    linear-gradient(180deg,rgba(255,255,255,.34),rgba(255,255,255,0) 46%),
+    linear-gradient(115deg,transparent 26%,color-mix(in srgb,var(--accent3) 62%,transparent) 43%,color-mix(in srgb,var(--accent) 58%,transparent) 51%,color-mix(in srgb,var(--accent2) 62%,transparent) 60%,transparent 76%);
+  background-size:auto,auto,240% 100%;background-position:0 0,0 0,var(--mx,50%) 0;
+  mix-blend-mode:screen;opacity:.45;transition:opacity .22s}
+.btn::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(60% 140% at var(--mx,50%) -10%,rgba(255,255,255,.5),transparent 40%);
+  mix-blend-mode:screen;opacity:0;transition:opacity .22s}
+.btn:hover::before,.btn:focus-visible::before{opacity:1}
+.btn:hover::after,.btn:focus-visible::after{opacity:.85}
+.btn:active{transform:perspective(640px) scale(.98)}
+.btn.pri{background:linear-gradient(135deg,var(--accent),var(--accent3) 60%,#7a0f0a);color:#fff}
+.btn.pri:hover{box-shadow:inset 0 2px 1px rgba(255,255,255,.7),inset 0 -5px 9px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.16),0 16px 32px rgba(0,0,0,.4),var(--glow)}
+.btn.sec{background:linear-gradient(180deg,var(--surface),var(--surface-2));color:var(--ink);border:1px solid var(--line)}
+.btn.sec.on{background:linear-gradient(135deg,var(--accent),var(--accent3));color:#fff;border-color:var(--accent)}
+.btn.sec:hover{border-color:var(--accent);box-shadow:inset 0 2px 1px rgba(255,255,255,.4),inset 0 -4px 8px rgba(0,0,0,.18),0 12px 26px rgba(0,0,0,.18),var(--glow)}
+.btn.light{background:linear-gradient(180deg,#ffffff,#eef1f6);color:#16202e}
+.btn.ghost{background:linear-gradient(180deg,rgba(140,150,170,.10),rgba(18,23,33,.10));border:1px solid var(--accent);color:var(--accent)}
+.btn.ghost:hover{box-shadow:var(--glow)}
+.btn.block{display:flex;width:100%}
+.btn.lg{padding:15px 22px;font-size:1.05rem}
+@media (prefers-reduced-motion:reduce){.btn{transform:none;transition:none}}
+
+/* ---- Stats ---- */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;margin:16px 0}
+@media(min-width:560px){.stats{grid-template-columns:repeat(4,1fr)}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;text-align:center;box-shadow:var(--shadow)}
+.stat .n{font-size:1.7rem;font-weight:900;color:var(--accent);line-height:1}
+.stat .l{font-size:.78rem;color:var(--ink-2);font-weight:700;margin-top:6px}
+
+/* ---- Service cards (image) ---- */
+.sgrid{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:560px){.sgrid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:900px){.sgrid{grid-template-columns:repeat(3,1fr)}}
+.scard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+  box-shadow:var(--shadow);cursor:pointer;display:flex;flex-direction:column;
+  transition:transform .15s cubic-bezier(.34,1.4,.64,1),box-shadow .18s}
+.scard:hover{box-shadow:var(--shadow-lg)}
+.scard .ph{position:relative;aspect-ratio:16/10;background:linear-gradient(135deg,var(--accent) 0%,#7a0f0a 100%);overflow:hidden;display:grid;place-items:center}
+.scard .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2}
+.scard .ph .phi{font-size:54px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4));opacity:.92;z-index:1}
+.scard .ph .phtag{position:absolute;left:10px;top:10px;z-index:3;background:rgba(10,10,12,.55);backdrop-filter:blur(3px);
+  color:#fff;font-size:.66rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:4px 9px;border-radius:999px}
+.scard .sb{padding:13px 14px 15px;flex:1;display:flex;flex-direction:column}
+.scard .sb h3{font-size:1.08rem;font-weight:800;letter-spacing:-.2px}
+.scard .sb p{color:var(--ink-2);font-size:.9rem;margin:6px 0 0;line-height:1.5;flex:1}
+.scard .sb .more{margin-top:10px;color:var(--accent);font-weight:800;font-size:.85rem;display:inline-flex;align-items:center;gap:5px}
+
+/* ---- Eigene CSS-Art für fehlende Fotos: leuchtende 3D-Buchstaben & Schilder ---- */
+.art{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;text-align:center;padding:10px}
+.art .word{font-weight:900;font-size:2.6rem;letter-spacing:2px;line-height:1}
+.art .word i{font-style:normal}
+.art .sub{font-size:.6rem;font-weight:800;letter-spacing:3px}
+@keyframes neonflick{0%,18%,22%,25%,53%,57%,100%{opacity:1}20%,24%,55%{opacity:.55}}
+/* Leuchtreklame / Leuchtkasten */
+.art.sign{background:rgba(0,0,0,.28);border-radius:14px;padding:16px 26px;border:2px solid rgba(255,255,255,.55);
+  box-shadow:0 0 18px rgba(255,90,82,.4),inset 0 0 26px rgba(255,255,255,.18);animation:neonflick 5s infinite}
+.art.sign .word{color:#fff;text-shadow:0 0 6px #fff,0 0 14px #ff5a52,0 0 28px #E0231B}
+.art.sign .word i{color:#ff5a52;text-shadow:0 0 6px #ff5a52,0 0 18px #E0231B}
+.art.sign .sub{color:#ffe;text-shadow:0 0 8px #ff5a52}
+/* 3D-Leuchtbuchstaben (extrudiert + Glow) */
+.art.led3d .word{color:#fff;
+  text-shadow:0 1px 0 #ddd,0 2px 0 #bbb,0 3px 0 #999,0 4px 0 #777,0 5px 0 #555,0 6px 7px rgba(0,0,0,.55),0 0 18px #ff5a52,0 0 32px #E0231B}
+.art.led3d .word i{color:#ff4a40;text-shadow:0 1px 0 #a01109,0 2px 0 #7a0f0a,0 3px 7px rgba(0,0,0,.5),0 0 18px #ff5a52,0 0 30px #E0231B}
+.art.led3d .sub{color:#fff;opacity:.9;text-shadow:0 0 10px rgba(255,90,82,.6)}
+/* 3D-Schild / gebürstete Platte */
+.art.plaque{background:linear-gradient(135deg,#eef1f6,#aab2bd);border-radius:10px;padding:16px 26px;
+  box-shadow:0 8px 18px rgba(0,0,0,.45),inset 0 1px 0 #fff,inset 0 -3px 8px rgba(0,0,0,.25)}
+.art.plaque .word{color:#16202e;text-shadow:0 1px 0 #fff,0 2px 3px rgba(0,0,0,.3)}
+.art.plaque .word i{color:#E0231B}
+.art.plaque .sub{color:#5a6b80}
+
+/* ---- Referenzen-Galerie ---- */
+.gal{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:760px){.gal{grid-template-columns:repeat(4,1fr)}}
+.galitem{position:relative;aspect-ratio:4/3;border-radius:14px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);
+  background:linear-gradient(135deg,#1a1a1d,#3a3a3e);display:grid;place-items:center;cursor:pointer;transition:transform .15s}
+.galitem:hover{box-shadow:var(--shadow-lg)}
+.galitem img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2}
+.galitem .gi{font-size:40px;opacity:.85;z-index:1}
+.galitem .cap{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:18px 11px 9px;color:#fff;
+  background:linear-gradient(180deg,transparent,rgba(8,8,10,.85));font-size:.78rem;line-height:1.25}
+.galitem .cap b{display:block;font-weight:800;font-size:.86rem}
+
+/* ---- Team Universe ---- */
+.tgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(min-width:680px){.tgrid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:980px){.tgrid{grid-template-columns:repeat(5,1fr)}}
+.tcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);
+  transition:transform .15s,box-shadow .18s}
+.tcard:hover{box-shadow:var(--shadow-lg)}
+.tcard .hero-img{position:relative;aspect-ratio:3/4;overflow:hidden;display:grid;place-items:center;
+  background:radial-gradient(circle at 50% 30%,#3a2a55,#171022 70%)}
+.tcard .hero-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2}
+.tcard .hero-img .alias{position:relative;z-index:1;color:#ffd23a;font-weight:900;font-size:1rem;text-align:center;line-height:1.05;
+  text-transform:uppercase;letter-spacing:.5px;padding:0 8px;text-shadow:0 2px 0 #b41a10,0 0 18px rgba(255,210,58,.4)}
+.tcard .hero-img .cape{position:absolute;inset:0;z-index:1;background:repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 8px,transparent 8px 16px)}
+.tcard .tb{padding:11px 12px 13px}
+.tcard .tb .nm{font-weight:800;font-size:.98rem;letter-spacing:-.2px}
+.tcard .tb .ro{color:var(--ink-2);font-size:.82rem;margin-top:1px}
+.tcard .tb .al{color:var(--accent);font-size:.76rem;font-weight:800;font-style:italic;margin-top:5px}
+.tcard .tb .tc{display:flex;gap:8px;margin-top:9px}
+.tcard .tb .tc a{flex:1;text-align:center;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:6px;
+  font-size:1rem;text-decoration:none;transition:background .15s}
+.tcard .tb .tc a:hover{background:var(--accent-soft)}
+
+/* ---- Generic section card ---- */
+.sect{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:14px;overflow:hidden;box-shadow:var(--shadow)}
+.sect-h{padding:14px 16px 8px;font-weight:800;font-size:.78rem;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-3)}
+.srow{display:flex;align-items:center;gap:12px;padding:14px 16px;border-top:1px solid var(--line);cursor:pointer;transition:background .15s;text-decoration:none;color:inherit}
+.srow:first-of-type{border-top:none}
+.srow:hover{background:var(--surface-2)}.srow.static{cursor:default}.srow.static:hover{background:none}
+.srow .sico{font-size:22px;width:28px;text-align:center;flex:none}
+.srow .sb{flex:1;min-width:0}.srow .sl{font-weight:700}.srow .ss{font-size:.85rem;color:var(--ink-2);margin-top:2px}
+.srow .sarr{color:var(--ink-3)}
+
+/* ---- FAQ accordion ---- */
+.faq{background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-bottom:11px;overflow:hidden;box-shadow:var(--shadow)}
+.faq .q{padding:15px 16px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:12px;font-size:1rem}
+.faq .q .chev{margin-inline-start:auto;color:var(--ink-3);transition:transform .2s;font-size:16px}
+.faq.open .q .chev{transform:rotate(90deg);color:var(--accent)}
+.faq .q .qi{color:var(--accent);font-weight:900}
+.faq .a{max-height:0;overflow:hidden;transition:max-height .3s ease;color:var(--ink-2);line-height:1.6}
+.faq .a .inner{padding:0 16px 15px;font-size:.93rem}
+.faq.open .a{max-height:360px}
+
+/* ---- Contact ---- */
+.cgrid{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:760px){.cgrid{grid-template-columns:1fr 1fr}}
+.hours{width:100%;border-collapse:collapse;font-size:.95rem}
+.hours td{padding:8px 4px;border-bottom:1px solid var(--line)}
+.hours td:last-child{text-align:end;font-weight:700;font-variant-numeric:tabular-nums}
+.hours tr:last-child td{border-bottom:none}
+.mapframe{width:100%;border:0;border-radius:16px;min-height:300px;box-shadow:var(--shadow);border:1px solid var(--line);background:var(--surface-2)}
+
+/* ---- Forms ---- */
+.fld{margin-bottom:13px}
+.flbl{font-size:.82rem;font-weight:700;color:var(--ink-2);margin-bottom:5px;display:block}
+.inp,select.inp,textarea.inp{width:100%;border:1.5px solid var(--line);background:var(--surface-2);border-radius:11px;
+  padding:11px 13px;outline:none;transition:border-color .15s,background .15s}
+.inp:focus{border-color:var(--accent);background:var(--surface)}
+textarea.inp{resize:vertical;min-height:90px}
+
+/* ---- FAB ---- */
+.fab{position:fixed;bottom:calc(82px + env(safe-area-inset-bottom));inset-inline-end:18px;z-index:25;
+  height:56px;padding:0 20px;border-radius:18px;border:none;background:var(--accent);color:#fff;font-size:1rem;font-weight:800;
+  box-shadow:0 8px 24px -4px var(--accent);cursor:pointer;display:flex;align-items:center;gap:8px;
+  transition:transform .15s cubic-bezier(.34,1.56,.64,1)}
+.fab:active{transform:scale(1.1)}
+.fab .fi{font-size:22px}
+
+/* ---- Bottom nav ---- */
+.bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--surface);
+  border-top:1px solid var(--line);display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));gap:1px}
+.navbtn{flex:1;border:none;background:transparent;padding:7px 1px;border-radius:12px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink-3);font-size:.6rem;font-weight:700;
+  transition:transform .12s,color .15s}
+.navbtn .ni{font-size:20px;transition:transform .15s}
+.navbtn:active{transform:scale(1.12)}
+.navbtn.on{color:var(--accent)}.navbtn.on .ni{transform:translateY(-1px) scale(1.08)}
+
+/* ---- Sheet / Modal ---- */
+.sh-bg{position:fixed;inset:0;z-index:60;background:rgba(15,23,40,.5);backdrop-filter:blur(3px);
+  display:flex;align-items:flex-end;justify-content:center;animation:fade .2s}
+.sheet{background:var(--surface);width:100%;max-width:680px;max-height:94vh;border-radius:24px 24px 0 0;
+  display:flex;flex-direction:column;animation:slideup .3s cubic-bezier(.16,1,.3,1)}
+@media(min-width:700px){.sh-bg{align-items:center}.sheet{border-radius:24px;max-height:90vh}}
+@keyframes slideup{from{transform:translateY(100%)}to{transform:none}}
+.sh-handle{width:40px;height:4px;background:var(--line);border-radius:99px;margin:9px auto 2px}
+.sh-hdr{display:flex;align-items:center;padding:6px 18px 12px;border-bottom:1px solid var(--line)}
+.sh-title{font-weight:900;font-size:1.16rem;flex:1}
+.sh-x{border:none;background:var(--surface-2);width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:16px;color:var(--ink-2);transition:transform .12s}
+.sh-x:active{transform:scale(1.2)}
+.sh-body{overflow-y:auto;padding:16px 18px;flex:1}
+.sh-foot{display:flex;gap:10px;padding:12px 18px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.sh-foot .btn{flex:1}
+.sh-hero{margin:-16px -18px 14px;aspect-ratio:16/9;position:relative;background:linear-gradient(135deg,var(--accent),#7a0f0a);overflow:hidden;display:grid;place-items:center}
+.sh-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2}
+.sh-hero .phi{font-size:64px;opacity:.92;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4))}
+.sh-body h4{font-size:.9rem;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-3);margin:16px 0 7px}
+.sh-body p{color:var(--ink-2);line-height:1.6;margin:0 0 10px}
+.taglist{display:flex;flex-wrap:wrap;gap:7px;margin:4px 0 4px}
+.taglist span{background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:5px 11px;font-size:.82rem;font-weight:700}
+html[data-theme="dark"] .taglist span,html[data-theme="contrast"] .taglist span{color:#ff6b62}
+
+/* ---- Theme option list ---- */
+.themeopt{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1.5px solid var(--line);border-radius:14px;margin-bottom:10px;cursor:pointer;transition:border-color .15s,transform .1s;background:var(--surface-2)}
+.themeopt:active{transform:scale(1.02)}
+.themeopt.on{border-color:var(--accent)}
+.themeopt .sw{width:46px;height:32px;border-radius:9px;flex:none;border:1px solid rgba(0,0,0,.15);display:flex;overflow:hidden}
+.themeopt .sw i{flex:1}
+.themeopt .tl{flex:1}.themeopt .tl b{display:block;font-weight:800}.themeopt .tl small{color:var(--ink-2)}
+.themeopt .ck{color:var(--accent);font-weight:900;opacity:0}
+.themeopt.on .ck{opacity:1}
+
+/* ---- toast ---- */
+#toasts{position:fixed;bottom:calc(92px + env(safe-area-inset-bottom));left:0;right:0;z-index:90;
+  display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+.toast{background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:12px;font-weight:600;font-size:.9rem;
+  box-shadow:var(--shadow-lg);animation:tin .3s;max-width:90%}
+@keyframes tin{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+
+/* ---- install bar ---- */
+#installBar{display:none;align-items:center;gap:10px;background:var(--accent);color:#fff;padding:10px 14px}
+#installBar.on{display:flex}
+#installBar img{height:28px;width:auto;background:#fff;border-radius:6px;padding:2px;flex:none}
+#installBar .ibtxt{flex:1;min-width:0;line-height:1.25;font-size:.9rem;font-weight:600}
+#installBar .ibtn{flex:none;background:#fff;color:var(--accent);border:none;border-radius:9px;padding:8px 15px;font-weight:800;font-size:.86rem;cursor:pointer}
+#installBar .ibtn:active{transform:scale(1.06)}
+#installBar .ibx{flex:none;background:transparent;border:none;color:#fff;font-size:18px;cursor:pointer;opacity:.85;padding:4px}
+
+/* ---- footer ---- */
+.foot{margin:30px 4px 8px;color:var(--ink-3);font-size:.82rem;text-align:center;line-height:1.9}
+.foot a{color:var(--ink-2);text-decoration:none;margin:0 6px}
+.foot a:hover{color:var(--accent)}
+.foot .bigbrand{font-weight:900;color:var(--ink-2);font-size:1rem;margin-bottom:4px}
+.foot .bigbrand i{color:var(--accent);font-style:normal}
+
+/* ---- splash ---- */
+#splash{position:fixed;inset:0;z-index:200;display:grid;place-items:center;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 42%,#1b1b1f 0%,#101012 60%,#070708 100%);transition:opacity .6s ease}
+#splash.gone{opacity:0;visibility:hidden}
+#spGalaxy{position:absolute;left:50%;top:46%;width:min(135vw,900px);height:min(135vw,900px);
+  transform:translate(-50%,-50%) scale(.2);background:radial-gradient(circle,rgba(224,35,27,.20),transparent 68%);opacity:0;mix-blend-mode:screen}
+#spGalaxy.grow{animation:sp-gal 2.6s ease forwards}
+@keyframes sp-gal{0%{opacity:0;transform:translate(-50%,-50%) scale(.18) rotate(0)}30%{opacity:.9}100%{opacity:.7;transform:translate(-50%,-50%) scale(1.4) rotate(9deg)}}
+.sp-emblem{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:min(64vw,330px);opacity:0;z-index:2}
+.sp-emblem img{width:100%;height:auto;display:block;filter:drop-shadow(0 8px 26px rgba(0,0,0,.6))}
+.sp-emblem.open{animation:sp-emopen 2.6s ease forwards}
+@keyframes sp-emopen{0%{opacity:0;filter:brightness(.2);transform:translate(-50%,-50%) scale(.86)}
+  45%{opacity:1;filter:brightness(1);transform:translate(-50%,-50%) scale(1)}
+  78%{filter:brightness(1.5);transform:translate(-50%,-50%) scale(1.03)}
+  100%{opacity:1;filter:brightness(1);transform:translate(-50%,-50%) scale(1)}}
+.sp-word{position:absolute;left:0;right:0;bottom:23%;text-align:center;color:#fff;z-index:3;opacity:0;transition:opacity .8s ease .3s}
+.sp-word.on{opacity:1}
+.sp-word b{font-size:1.6rem;font-weight:900;letter-spacing:.5px}
+.sp-word b i{font-style:normal;color:var(--accent)}
+.sp-word small{display:block;color:#bdbdc4;font-size:.78rem;letter-spacing:.5px;margin-top:4px;text-transform:uppercase}
+#spFlash{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 46%,#fff,rgba(255,255,255,.7) 38%,rgba(255,255,255,0) 72%)}
+#spFlash.go{animation:sp-flash .8s ease}
+@keyframes sp-flash{0%{opacity:0}45%{opacity:.85}100%{opacity:0}}
+.sp-skip{position:fixed;bottom:22px;left:0;right:0;text-align:center;color:rgba(255,255,255,.5);font-size:.78rem;letter-spacing:.05em}
+@media (prefers-reduced-motion:reduce){#spGalaxy.grow,.sp-emblem.open{animation-duration:.4s}}
+
+/* ---- Tooltip ---- */
+.wf-tip{position:fixed;z-index:9999;max-width:240px;background:#15121f;color:#fff;font-size:.82rem;line-height:1.35;
+  padding:8px 11px;border-radius:9px;box-shadow:0 8px 22px rgba(0,0,0,.45);border:1px solid var(--accent);
+  pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s}
+.wf-tip.on{opacity:1;transform:translateY(0)}
+
+/* reveal on scroll */
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s ease}
+.reveal.in{opacity:1;transform:none}
+
+/* ===== three.js Mycel-Hintergrund (Effekt 1:1 aus Family Projekt) ===== */
+#bg{position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:.55}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(60% 50% at 80% 0%,rgba(224,35,27,.10),transparent 60%),
+             radial-gradient(55% 45% at 4% 100%,rgba(224,35,27,.07),transparent 60%)}
+html[data-theme="dark"] #bg,html[data-theme="contrast"] #bg{opacity:.8}
+@keyframes holo-rot{to{--rot:360deg}}
+
+/* ===== Glaskugel-Glanz auf Karten & Bildern (folgt der Maus) ===== */
+.scard,.galitem,.tcard,.hero,.sh-hero,.stat{
+  transform:perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));
+  transform-style:preserve-3d}
+.scard .ph::after,.galitem::after,.tcard .hero-img::after,.hero .hph::after,.sh-hero::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:4;
+  background:radial-gradient(220px 150px at var(--mx,50%) var(--my,15%),rgba(255,255,255,.40),transparent 60%),
+            linear-gradient(180deg,rgba(255,255,255,.14),transparent 38%);
+  mix-blend-mode:screen;opacity:0;transition:opacity .28s}
+.scard:hover .ph::after,.galitem:hover::after,.tcard:hover .hero-img::after,.hero:hover .hph::after,.sh-hero:hover::after{opacity:1}
+/* scharfe Schliffkante wie bei den Buttons */
+.scard .ph,.galitem,.tcard .hero-img,.hero,.sh-hero{box-shadow:inset 0 0 0 1px rgba(255,255,255,.10),inset 0 2px 1px rgba(255,255,255,.18)}
+
+/* ===== Drag&Drop-Bild-Slots ===== */
+.dropzone{position:relative}
+.dropzone.dragover{outline:3px dashed var(--accent);outline-offset:-5px}
+.dropzone.dragover::before{content:"⬇ Bild hier ablegen";position:absolute;inset:0;z-index:9;display:grid;place-items:center;
+  background:rgba(224,35,27,.40);color:#fff;font-weight:900;font-size:.95rem;backdrop-filter:blur(2px);border-radius:inherit}
+.slot-edit{position:absolute;top:8px;right:8px;z-index:8;width:32px;height:32px;border-radius:9px;border:1px solid rgba(255,255,255,.5);
+  background:rgba(10,10,12,.55);backdrop-filter:blur(4px);color:#fff;font-size:15px;cursor:pointer;display:grid;place-items:center;
+  opacity:0;transition:opacity .2s,transform .12s}
+.dropzone:hover .slot-edit,.galitem .slot-edit{opacity:.9}
+.slot-edit:hover{opacity:1;background:var(--accent)}
+.slot-edit:active{transform:scale(1.15)}
+.tcard .hero-img .slot-edit{top:6px;right:6px}
+
+/* ===== Desktop: Top-Nav statt Bottom-Nav (Quell-Reihenfolge sichern) ===== */
+@media(min-width:980px){
+  body .bottomnav{display:none}
+  body{padding-bottom:24px}
+  .fab{bottom:24px}
+}
+
+
+</style>
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+
+<!-- ===== Splash ===== -->
+<div id="splash" onclick="skipSplash()">
+  <div id="spGalaxy"></div>
+  <div class="sp-emblem" id="spEmblem"><img src="icon-512.png" alt="Logo"></div>
+  <div class="sp-word" id="spWord"><b>Muster <i>Werbetechnik</i></b><small>Werbetechnik-Vorlage</small></div>
+  <div id="spFlash"></div>
+  <div class="sp-skip">Tippen zum Überspringen</div>
+</div>
+
+<!-- ===== Topbar ===== -->
+<header class="topbar">
+  <div class="brand" onclick="goTo(0)" data-tip="Zur Startseite">
+    <img class="logo" src="icon-192.png" alt="Logo">
+    <span class="nm"><b>W<i>T</i></b><small>Werbetechnik</small></span>
+  </div>
+  <nav class="topnav" id="topnav"></nav>
+  <div class="tb-acts">
+    <button class="iconbtn" onclick="openThemes()" data-tip="Design wechseln: Hell · Dunkel · Kontrast (Schwarz/Rot)">🎨</button>
+    <button class="iconbtn" onclick="quickDark()" data-tip="Schnell Hell/Dunkel umschalten" id="tbDark">🌙</button>
+    <a class="iconbtn" href="tel:[Telefon]" data-tip="Direkt anrufen: [Telefon]">📞</a>
+  </div>
+</header>
+
+<!-- ===== Install bar ===== -->
+<div id="installBar">
+  <img src="icon-192.png" alt="">
+  <span class="ibtxt">Werbetechnik auf diesem Gerät installieren</span>
+  <button class="ibtn" onclick="installApp()">Installieren</button>
+  <button class="ibx" onclick="dismissInstall()" title="Ausblenden">✕</button>
+</div>
+
+<!-- ===== Search (only on Leistungen) ===== -->
+<div id="searchArea">
+  <div class="searchwrap">
+    <div class="searchbox"><span class="si">🔍</span>
+      <input id="searchInput" oninput="onSearch(this.value)" placeholder="Leistung suchen … z. B. Folierung, Schild, Druck">
+      <span class="si" style="cursor:pointer;display:none" id="searchX" onclick="clearSearch()">✕</span>
+    </div>
+  </div>
+  <div class="filterbar" id="filterBar"></div>
+</div>
+
+<!-- ===== Screens ===== -->
+<main>
+  <section class="screen on" id="sc-start"></section>
+  <section class="screen" id="sc-leistungen"></section>
+  <section class="screen" id="sc-anlagen"></section>
+  <section class="screen" id="sc-faq"></section>
+  <section class="screen" id="sc-team"></section>
+  <section class="screen" id="sc-kontakt"></section>
+</main>
+
+<!-- ===== FAB ===== -->
+<button class="fab" id="fab" onclick="openAnfrage()" data-tip="Unverbindliche Anfrage senden"><span class="fi">✉️</span><span>Anfrage</span></button>
+
+<!-- ===== Bottom nav ===== -->
+<nav class="bottomnav" id="bottomnav"></nav>
+
+<div id="modals"></div>
+<div id="toasts"></div>
+
+<script src="effects.js"></script>
+<script type="module" src="assets/mycel-bg.js"></script>
+<script>
+'use strict';
+/* ===== Helpers ===== */
+const $=id=>document.getElementById(id);
+const h=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;$('toasts').appendChild(t);
+  setTimeout(()=>{t.style.transition='opacity .4s';t.style.opacity='0';setTimeout(()=>t.remove(),400);},2600);}
+
+/* ===== Navigation model ===== */
+const NAV=[
+  {id:'start',ico:'🏠',label:'Start',full:'Start'},
+  {id:'leistungen',ico:'🎯',label:'Leistungen',full:'Leistungen'},
+  {id:'anlagen',ico:'📍',label:'Anlagen',full:'Info- & Gewerbesammelanlagen'},
+  {id:'faq',ico:'❓',label:'FAQ',full:'FAQ'},
+  {id:'team',ico:'🦸',label:'Team',full:'Über uns'},
+  {id:'kontakt',ico:'✉️',label:'Kontakt',full:'Kontakt/Anfahrt'},
+];
+
+/* ===== Daten: Leistungen ===== */
+const CATS=[
+  {key:'alle',label:'Alle'},
+  {key:'fahrzeug',label:'Fahrzeug'},
+  {key:'druck',label:'Druck & Folie'},
+  {key:'schild',label:'Schilder & Gravur'},
+  {key:'licht',label:'Lichtwerbung'},
+];
+const SERVICES=[
+  {id:'folierung',cat:'fahrzeug',icon:'🚗',tag:'Fahrzeug',
+   title:'Fahrzeugfolierung',
+   short:'Vollverklebung, Teilfolierung und Farbwechsel mit hochwertigen Premium-Folien — vom Firmenwagen bis zum Designfahrzeug.',
+   long:'Wir verwandeln Ihre Fahrzeuge in aufmerksamkeitsstarke Werbeträger oder individuell gestaltete Designfahrzeuge — mit hochwertigen Folien im Plot oder Digitaldruck. Ob komplette Flotte, Teilfolierung oder Farbwechsel: sauber verarbeitet, langlebig und passgenau verklebt.',
+   feats:['Komplett- & Teilfolierung','Farbwechsel (Car-Wrapping)','Designfahrzeuge','Flottenbeklebung']},
+  {id:'beschriftung',cat:'fahrzeug',icon:'🔤',tag:'Fahrzeug',
+   title:'Fahrzeugbeschriftung',
+   short:'Logos, Schriftzüge und Werbebotschaften – machen Sie jedes Fahrzeug zur mobilen Werbefläche.',
+   long:'Vom dezenten Firmenlogo bis zur vollflächigen Werbebotschaft: Wir beschriften Ihre Fahrzeuge mit Plot- oder Digitaldruckfolien – präzise zugeschnitten und sauber montiert. So wird jeder Transporter, PKW oder LKW zur rollenden Werbefläche.',
+   feats:['Plot- & Digitaldruckfolien','Logos & Schriftzüge','Magnetschilder','Konturschnitt']},
+  {id:'digitaldruck',cat:'druck',icon:'🖨️',tag:'Druck',
+   title:'Digitaldruck & Großformat',
+   short:'Großformatdrucke, Werbeplanen, Banner, Displays und Roll-Ups in brillanter Qualität.',
+   long:'Vom Banner bis zur großflächigen Werbeplane: Wir produzieren Großformatdrucke in brillanten, langlebigen Farben. Displays, Roll-Ups, Pop-Up-Systeme und Messesysteme für Ihren professionellen Auftritt – drinnen wie draußen.',
+   feats:['Großformatdruck','Werbeplanen & Banner','Roll-Up & Pop-Up','Displays & Messesysteme']},
+  {id:'schilder-3d',cat:'schild',icon:'🪧',tag:'Schilder',
+   title:'3D-Schilder & Tableaus',
+   short:'Firmenschilder, Frontplatten und Meldetableaus – dimensional, hochwertig und langlebig.',
+   long:'Wir fertigen Firmenschilder, Frontplatten und Meldetableaus mit echter Tiefenwirkung. Hochwertige Materialien, präzise Verarbeitung und ein dimensionaler Look, der Ihrer Marke Gewicht verleiht – für Lobby, Fassade und Leitsystem.',
+   feats:['Firmen- & Hinweisschilder','Frontplatten','Meldetableaus','Reliefschilder']},
+  {id:'leuchtreklame',cat:'licht',icon:'💡',tag:'Licht',
+   title:'Lichtwerbung & Leuchtreklame',
+   short:'Leuchtkästen und Lichtwerbung, die Ihre Marke auch nach Sonnenuntergang sichtbar macht.',
+   long:'Auffallen rund um die Uhr: Mit Leuchtkästen und individueller Lichtwerbung bleibt Ihre Marke auch im Dunkeln präsent. Energieeffiziente LED-Technik, gleichmäßige Ausleuchtung und ein sauberer, moderner Auftritt.',
+   feats:['Leuchtkästen','LED-Technik','Außenwerbung','Schaufenster-Beleuchtung']},
+  {id:'leuchtbuchstaben',cat:'licht',icon:'🔆',tag:'Licht',
+   title:'3D-Leuchtbuchstaben',
+   short:'Beleuchtete Profil- und Einzelbuchstaben mit edler Tiefenwirkung – Front- und Hinterleuchtung.',
+   long:'Plastische Profilbuchstaben mit Front- oder Hinterleuchtung (Halo-Effekt) setzen Ihren Schriftzug eindrucksvoll in Szene. Hochwertig gefertigt, sauber montiert und energieeffizient beleuchtet – der Premium-Auftritt für Fassade und Empfang.',
+   feats:['Profilbuchstaben','Front- & Hinterleuchtung','Halo-Effekt','LED-beleuchtet']},
+  {id:'gravur',cat:'schild',icon:'⚙️',tag:'Gravur',
+   title:'Gravur- & Frästechnik',
+   short:'Präzise Gravuren auf Kunststoff und Metall – Typenschilder, Zählerplatten und Tableaus.',
+   long:'Unser Ursprung seit 1989: hochwertige Gravuren exakt nach Ihren Vorgaben – auf Kunststoffen sowie Aluminium, Messing und Edelstahl. Typenschilder, Melderschilder, Zählerplatten, Bezeichnungs- und Firmenschilder. Mehrsprachig, mit Bohrungen, selbstklebend oder in Sonderform.',
+   feats:['Kunststoff & Metall','Typen- & Melderschilder','Zähler- & Frontplatten','Sonderformen & Ausbrüche']},
+  {id:'fenster',cat:'druck',icon:'🪟',tag:'Folie',
+   title:'Fenster- & Sonnenschutzfolie',
+   short:'Schaufensterdesign, Sicht- und Sonnenschutz sowie Scheibentönungen – funktional und werbewirksam.',
+   long:'Fenster- und Schaufensterfolierungen vereinen Werbung und Funktion: Sichtschutz, Sonnen- und Blendschutz, Scheibentönung und kreatives Schaufensterdesign. Sauber appliziert für ein professionelles Erscheinungsbild.',
+   feats:['Schaufensterdesign','Sicht- & Sonnenschutz','Scheibentönung','Sicherheitsfolien']},
+];
+const REFS=[
+  {t:'Referenzprojekt Fahrzeugfolierung',s:'Fahrzeugfolierung & Konturmarkierung',icon:'🚗'},
+  {t:'Referenzprojekt Designfolierung',s:'Designfolierung (Farbwechsel-Look)',icon:'🚗'},
+  {t:'Referenzprojekt Fahrzeugbeschriftung',s:'Eigenes Werbefahrzeug',icon:'⭐'},
+  {t:'Referenzprojekt Beschriftung',s:'Fahrzeugbeschriftung',icon:'💡'},
+];
+const SPEKTRUM=['Aufkleber','Außenwerbung','Autofolierungen','Beschriftungen','Digitaldruck','Fahrzeugbeschriftungen','Fenstertönungen','Folierungen','Fronttableaus','Gravuren','Großformatdrucke','Lichtwerbung','Messesysteme','Planen','Pop-Up Systeme','POS-Betreuung','Roll-Up Banner','Schaufensterdesign','Scheibentönung','Schilder','Sicherheitsbeschilderung','Sonnenschutzfolien','Tableaus','Typenschilder','Werbeanlagen','Zählerplatten'];
+const TEAM=[
+  {name:'Vorname Nachname',role:'Werbetechnik',alias:'Werbetechnik',slug:'person-1'},
+  {name:'Vorname Nachname',role:'Montage',alias:'Montage',slug:'person-2'},
+  {name:'Vorname Nachname',role:'Grafik',alias:'Grafik',slug:'person-3'},
+];
+const FAQS=[
+  {q:'Welche Leistungen bieten Sie?',a:'Von Fahrzeugfolierung und -beschriftung über Digital- und Großformatdruck, Schilder, Tableaus und Gravuren bis hin zu Lichtwerbung, 3D-Leuchtbuchstaben, Fensterfolierungen sowie Messe- und Eventaufbau – alles aus einer Hand.'},
+  {q:'Bekomme ich wirklich alles aus einer Hand?',a:'Ja. Von der ersten Idee über Gestaltung und Produktion bis zur finalen Montage übernehmen wir den kompletten Ablauf – ein Ansprechpartner, ein Ergebnis aus einem Guss.'},
+  {q:'Folieren Sie auch einzelne Fahrzeuge?',a:'Selbstverständlich – ob einzelnes Firmenfahrzeug, Privatfahrzeug oder ganze Flotte. Wir beraten Sie zu Komplett-, Teilfolierung und Farbwechsel.'},
+  {q:'Wie läuft ein Projekt typischerweise ab?',a:'In vier Schritten: 1) Beratung & Konzept, 2) Gestaltung/Entwurf, 3) Produktion, 4) Montage vor Ort. Sie werden in jedem Schritt eingebunden.'},
+  {q:'Auf welchen Materialien gravieren Sie?',a:'Auf verschiedensten Kunststoffen sowie Metallen wie Aluminium, Messing und Edelstahl – passgenau für Typenschilder, Zählerplatten, Tableaus und mehr.'},
+  {q:'Was sind Info- und Gewerbesammelanlagen?',a:'Werbeflächen an den Orteingängen und -ausgängen Ihrer Gemeinde. Mit 10 Gewerbesammelschildern und 12 Infosammelanlagen präsentieren Sie Ihr Unternehmen dauerhaft im direkten Umfeld Ihrer Zielgruppe.'},
+  {q:'Wann haben Sie geöffnet?',a:'Montag bis Donnerstag 7:30–16:00 Uhr, Freitag 7:30–13:30 Uhr. Sie erreichen uns unter [Telefon] oder info@example.de.'},
+];
+
+/* ===== Render: Start ===== */
+function renderStart(){
+  const s=$('sc-start');
+  s.innerHTML=
+  '<div class="hero reveal">'+
+    '<div class="hph" data-slot="hero"></div>'+
+    '<div class="hscrim"></div>'+
+    '<div class="hcont">'+
+      '<span class="htag">Werbetechnik seit 1989</span>'+
+      '<h1>Ihr Partner für <i>Werbetechnik</i></h1>'+
+      '<p>Wir machen es möglich – von Fahrzeugfolierung über Digitaldruck bis Lichtwerbung. Alles aus einer Hand, auf höchstem Qualitätsniveau.</p>'+
+      '<div class="hbtns">'+
+        '<button class="btn pri lg" onclick="goTo(1)">Leistungen entdecken</button>'+
+        '<button class="btn light lg" onclick="openAnfrage()">Anfrage senden</button>'+
+      '</div>'+
+    '</div>'+
+  '</div>'+
+  '<div class="stats reveal">'+
+    '<div class="stat"><div class="n">30+</div><div class="l">Jahre Erfahrung</div></div>'+
+    '<div class="stat"><div class="n">1989</div><div class="l">gegründet</div></div>'+
+    '<div class="stat"><div class="n">22</div><div class="l">Werbe-Sammelanlagen</div></div>'+
+    '<div class="stat"><div class="n">1</div><div class="l">alles aus einer Hand</div></div>'+
+  '</div>'+
+  '<div class="secttitle reveal"><span class="bar"></span><div><h2>Über uns</h2></div></div>'+
+  '<p class="lead reveal">Seit vielen Jahren ist die Muster Werbetechnik ein verlässlicher Partner für hochwertige Gravur-, Fräs- und Werbetechnik. Gegründet 1989 in der Gravur- und Frästechnik, sind wir heute Spezialist für ein breites Spektrum an Werbelösungen – von Schildern und Meldetableaus über Fahrzeugwerbung, Folierungen und Beschriftungen bis hin zu Digitaldruck, Lichtwerbung, Displays und Messeaufbau.</p>'+
+  '<p class="lead reveal">Unser Team steht für handwerkliches Können, Kreativität und Zuverlässigkeit. Wir setzen Ihre Ideen professionell um – vom ersten Konzept bis zur finalen Montage. Maßgeschneiderte Lösungen, die Ihr Unternehmen sichtbar machen.</p>'+
+  '<div class="secttitle reveal"><span class="bar"></span><div><h2>Beliebte Leistungen</h2><div class="sub">Tippen für Details</div></div></div>'+
+  '<div class="sgrid" id="startGrid"></div>'+
+  '<div style="text-align:center;margin:18px 0 4px"><button class="btn sec lg" onclick="goTo(1)">Alle Leistungen ansehen →</button></div>'+
+  '<div class="secttitle reveal"><span class="bar"></span><div><h2>Wir machen es möglich.</h2></div></div>'+
+  '<p class="lead reveal">Sprechen Sie uns an – wir beraten Sie gerne persönlich und entwickeln gemeinsam die perfekte Lösung für Ihre Marke.</p>'+
+  '<div style="text-align:center;margin:14px 0"><button class="btn pri lg" onclick="openAnfrage()">✉️ Jetzt anfragen</button></div>'+
+  footerHTML();
+  $('startGrid').innerHTML=SERVICES.slice(0,3).map(cardHTML).join('');
+  hookReveal();
+}
+/* Eigene CSS-Art als Foto-Platzhalter (leuchtende 3D-Buchstaben / Schilder) */
+const ART={leuchtreklame:['sign','LEUCHTREKLAME'],leuchtbuchstaben:['led3d','3D-LEUCHTBUCHSTABEN'],'schilder-3d':['plaque','3D-SCHILDER']};
+function artHTML(sv){
+  const a=ART[sv.id];
+  if(a)return '<div class="art '+a[0]+'"><span class="word">W<i>T</i></span><span class="sub">'+a[1]+'</span></div>';
+  return '<span class="phi">'+sv.icon+'</span>';
+}
+function cardHTML(sv){
+  return '<div class="scard reveal" onclick="openService(\''+sv.id+'\')">'+
+    '<div class="ph" data-slot="sv-'+sv.id+'">'+(sv.img?'<img src="'+h(sv.img)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'')+
+      '<span class="phtag">'+h(sv.tag)+'</span>'+artHTML(sv)+'</div>'+
+    '<div class="sb"><h3>'+h(sv.title)+'</h3><p>'+h(sv.short)+'</p>'+
+      '<span class="more">Mehr erfahren →</span></div>'+
+  '</div>';
+}
+
+/* ===== Render: Leistungen ===== */
+let curFilter='alle', curSearch='';
+function renderLeistungen(){
+  const s=$('sc-leistungen');
+  s.innerHTML=
+  '<h1 class="pagehead">Unsere Leistungen</h1>'+
+  '<p class="lead">Wir machen Ihre Marke sichtbar – wirkungsvoll, professionell und genau auf Ihre Ziele abgestimmt. Von der Konzeption bis zur fertigen Montage. <b>Werbung, die Eindruck hinterlässt.</b></p>'+
+  '<div class="sgrid" id="leistGrid" style="margin-top:14px"></div>'+
+  '<div class="secttitle"><span class="bar"></span><div><h2>Referenzen</h2><div class="sub">Ausgewählte Projekte aus der Region</div></div></div>'+
+  '<div class="gal">'+REFS.map((r,i)=>'<div class="galitem" data-slot="ref-'+i+'" onclick="openRef(\''+h(r.t)+'\',\''+h(r.s)+'\',\''+r.icon+'\',\'ref-'+i+'\')">'+
+     '<span class="gi">'+r.icon+'</span>'+
+     '<span class="cap"><b>'+h(r.t)+'</b>'+h(r.s)+'</span></div>').join('')+'</div>'+
+  '<div class="secttitle"><span class="bar"></span><div><h2>Komplettes Leistungsspektrum</h2></div></div>'+
+  '<div class="chips" style="display:flex;flex-wrap:wrap;gap:8px;margin:6px 4px">'+SPEKTRUM.map(x=>'<span style="background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 13px;font-size:.84rem;font-weight:600;color:var(--ink-2);box-shadow:var(--shadow)"><b style="color:var(--accent)">+</b> '+h(x)+'</span>').join('')+'</div>'+
+  footerHTML();
+  renderFilterBar();applyLeist();
+}
+function renderFilterBar(){
+  $('filterBar').innerHTML=CATS.map(c=>'<button class="pill'+(c.key===curFilter?' on':'')+'" onclick="setFilter(\''+c.key+'\')">'+h(c.label)+'</button>').join('');
+}
+function setFilter(k){curFilter=k;renderFilterBar();applyLeist();}
+function onSearch(v){curSearch=v.toLowerCase().trim();$('searchX').style.display=v?'block':'none';applyLeist();}
+function clearSearch(){$('searchInput').value='';curSearch='';$('searchX').style.display='none';applyLeist();}
+function applyLeist(){
+  const g=$('leistGrid');if(!g)return;
+  let list=SERVICES.filter(sv=>curFilter==='alle'||sv.cat===curFilter);
+  if(curSearch){list=list.filter(sv=>(sv.title+' '+sv.short+' '+sv.long+' '+sv.feats.join(' ')).toLowerCase().includes(curSearch));}
+  g.innerHTML=list.length?list.map(cardHTML).join(''):'<div style="grid-column:1/-1;text-align:center;color:var(--ink-3);padding:40px"><div style="font-size:48px">🔍</div>Keine Leistung gefunden.</div>';
+  hookReveal();
+}
+
+/* ===== Render: Anlagen ===== */
+function renderAnlagen(){
+  const s=$('sc-anlagen');
+  s.innerHTML=
+  '<h1 class="pagehead">Info- &amp; Gewerbesammelanlagen</h1>'+
+  '<p class="lead"><b>Wir vermieten Werbeflächen in Ihrer Gemeinde.</b></p>'+
+  '<div class="cgrid" style="margin-top:14px;align-items:start">'+
+    '<div>'+
+      '<p class="lead">An den Orteingängen und Ortsausgängen der Gemeinde stehen in einem flächendeckenden Netz <b>10 Gewerbesammelschilder</b> und <b>12 Infosammelanlagen</b>.</p>'+
+      '<p class="lead">Diese dienen nicht nur der Orientierung für Besucher und Durchreisende, sondern sind gleichzeitig aufmerksamkeitsstarke Werbeträger für ansässige Unternehmen.</p>'+
+      '<p class="lead">Präsentieren Sie Ihr Unternehmen mit Ihrem Logo oder einem individuellen Werbeeintrag und profitieren Sie von einer <b>dauerhaften Präsenz im direkten Umfeld Ihrer Zielgruppe</b>.</p>'+
+      '<p class="lead">Von der Gestaltung bis zur Montage erhalten Sie bei uns alles aus einer Hand – professionell, zuverlässig und auf Ihre Bedürfnisse abgestimmt.</p>'+
+      '<div class="stats" style="grid-template-columns:repeat(2,1fr)">'+
+        '<div class="stat"><div class="n">10</div><div class="l">Gewerbesammelschilder</div></div>'+
+        '<div class="stat"><div class="n">12</div><div class="l">Infosammelanlagen</div></div>'+
+      '</div>'+
+      '<p style="font-weight:900;color:var(--accent);font-size:1.1rem;margin:14px 4px">Machen Sie Ihr Unternehmen sichtbar.</p>'+
+      '<button class="btn pri lg" onclick="openAnfrage(\'Info-/Gewerbesammelanlagen\')">Werbefläche anfragen</button>'+
+    '</div>'+
+    '<div>'+
+      '<div class="sect-h" style="padding-left:4px">Standortkarte</div>'+
+      '<div class="mapframe" style="display:grid;place-items:center;color:var(--ink-3);font-weight:700;text-align:center;padding:20px">[Karte/Anfahrt]</div>'+
+      '<div class="sect" style="margin-top:12px">'+
+        srow('🔵','10 Gewerbesammelschilder','In Gewerbegebieten – blaues Symbol')+
+        srow('🔴','12 Infosammelanlagen','An hochfrequentierten Stellen – rotes i-Symbol')+
+      '</div>'+
+    '</div>'+
+  '</div>'+
+  footerHTML();
+  hookReveal();
+}
+function srow(ico,l,sub){return '<div class="srow static"><span class="sico">'+ico+'</span><div class="sb"><div class="sl">'+h(l)+'</div><div class="ss">'+h(sub)+'</div></div></div>';}
+
+/* ===== Render: FAQ ===== */
+function renderFaq(){
+  const s=$('sc-faq');
+  s.innerHTML=
+  '<h1 class="pagehead">Häufige Fragen</h1>'+
+  '<p class="lead">Antworten rund um unsere Werbetechnik.</p>'+
+  '<div style="margin-top:14px">'+
+  FAQS.map((f,i)=>'<div class="faq reveal" id="faq'+i+'"><div class="q" onclick="toggleFaq('+i+')"><span class="qi">?</span><span>'+h(f.q)+'</span><span class="chev">›</span></div><div class="a"><div class="inner">'+h(f.a)+'</div></div></div>').join('')+
+  '</div>'+
+  '<div class="sect reveal" style="margin-top:18px"><div class="sect-h">Noch Fragen?</div>'+
+    '<a class="srow" href="tel:[Telefon]"><span class="sico">📞</span><div class="sb"><div class="sl">Anrufen</div><div class="ss">[Telefon]</div></div><span class="sarr">›</span></a>'+
+    '<a class="srow" href="mailto:info@example.de"><span class="sico">✉️</span><div class="sb"><div class="sl">E-Mail schreiben</div><div class="ss">info@example.de</div></div><span class="sarr">›</span></a>'+
+  '</div>'+
+  footerHTML();
+  hookReveal();
+}
+function toggleFaq(i){$('faq'+i).classList.toggle('open');}
+
+/* ===== Render: Team Universe ===== */
+function renderTeam(){
+  const s=$('sc-team');
+  s.innerHTML=
+  '<h1 class="pagehead">Unser Team</h1>'+
+  '<p class="lead">Haben Sie Fragen zu unseren Produkten oder Einsatzbereichen? Unser Team steht Ihnen gerne zur Verfügung.</p>'+
+  '<div class="tgrid" style="margin-top:16px">'+
+  TEAM.map(m=>'<div class="tcard reveal">'+
+    '<div class="hero-img" data-slot="team-'+h(m.slug)+'"><div class="cape"></div>'+
+      '<span class="alias">'+h(m.alias)+'</span></div>'+
+    '<div class="tb"><div class="nm">'+h(m.name)+'</div><div class="ro">'+h(m.role)+'</div>'+
+      '<div class="al">„'+h(m.alias)+'"</div>'+
+      '<div class="tc"><a href="tel:[Telefon]" data-tip="Anrufen">📞</a><a href="mailto:info@example.de" data-tip="E-Mail">✉️</a></div>'+
+    '</div></div>').join('')+
+  '</div>'+
+  '<div style="text-align:center;margin:22px 0"><button class="btn pri lg" onclick="goTo(5)">Kontakt aufnehmen →</button></div>'+
+  footerHTML();
+  hookReveal();bindTips(s);
+}
+
+/* ===== Render: Kontakt ===== */
+function renderKontakt(){
+  const s=$('sc-kontakt');
+  s.innerHTML=
+  '<h1 class="pagehead">Kontakt &amp; Anfahrt</h1>'+
+  '<p class="lead">Wir beraten Sie gerne persönlich und entwickeln gemeinsam die perfekte Lösung für Ihre Marke.</p>'+
+  '<div class="cgrid" style="margin-top:14px">'+
+    '<div class="sect reveal"><div class="sect-h">Muster Werbetechnik</div>'+
+      '<a class="srow" href="#" onclick="return false"><span class="sico">📍</span><div class="sb"><div class="sl">[Straße Nr.]</div><div class="ss">[PLZ Ort] · Route planen</div></div><span class="sarr">›</span></a>'+
+      '<a class="srow" href="tel:[Telefon]"><span class="sico">📞</span><div class="sb"><div class="sl">[Telefon]</div><div class="ss">Mo–Fr während der Öffnungszeiten</div></div><span class="sarr">›</span></a>'+
+      '<a class="srow" href="mailto:info@example.de"><span class="sico">✉️</span><div class="sb"><div class="sl">info@example.de</div><div class="ss">Anfrage per E-Mail</div></div><span class="sarr">›</span></a>'+
+      '<a class="srow" href="#" onclick="return false"><span class="sico">📸</span><div class="sb"><div class="sl">[Social Media]</div><div class="ss">Aktuelle Projekte</div></div><span class="sarr">›</span></a>'+
+    '</div>'+
+    '<div class="sect reveal"><div class="sect-h">Öffnungszeiten</div>'+
+      '<div style="padding:6px 16px 14px"><table class="hours">'+
+        '<tr><td>Montag</td><td>7:30 – 16:00</td></tr>'+
+        '<tr><td>Dienstag</td><td>7:30 – 16:00</td></tr>'+
+        '<tr><td>Mittwoch</td><td>7:30 – 16:00</td></tr>'+
+        '<tr><td>Donnerstag</td><td>7:30 – 16:00</td></tr>'+
+        '<tr><td>Freitag</td><td>7:30 – 13:30</td></tr>'+
+      '</table></div>'+
+    '</div>'+
+  '</div>'+
+  '<div class="mapframe reveal" style="margin-top:14px;display:grid;place-items:center;color:var(--ink-3);font-weight:700;text-align:center;padding:20px">[Karte/Anfahrt]</div>'+
+  '<div class="secttitle"><span class="bar"></span><div><h2>Anfrage senden</h2></div></div>'+
+  '<div class="sect" style="padding:16px">'+anfrageFormHTML('')+'</div>'+
+  footerHTML();
+  hookReveal();
+}
+
+/* ===== Anfrage-Formular (mailto) ===== */
+function anfrageFormHTML(pref){
+  return '<form onsubmit="return sendAnfrage(event)">'+
+    '<div class="fld"><label class="flbl">Name / Firma *</label><input class="inp" id="afName" required placeholder="Ihr Name oder Ihre Firma"></div>'+
+    '<div class="fld"><label class="flbl">E-Mail oder Telefon *</label><input class="inp" id="afKontakt" required placeholder="So erreichen wir Sie"></div>'+
+    '<div class="fld"><label class="flbl">Betreff</label><input class="inp" id="afBetreff" value="'+h(pref)+'" placeholder="z. B. Fahrzeugfolierung"></div>'+
+    '<div class="fld"><label class="flbl">Ihre Nachricht *</label><textarea class="inp" id="afText" required placeholder="Beschreiben Sie kurz Ihr Vorhaben …"></textarea></div>'+
+    '<button class="btn pri block lg" type="submit">✉️ Anfrage per E-Mail senden</button>'+
+    '<p style="color:var(--ink-3);font-size:.78rem;margin:10px 2px 0">Es öffnet sich Ihr E-Mail-Programm mit vorausgefüllter Nachricht an info@example.de.</p>'+
+  '</form>';
+}
+function sendAnfrage(e){
+  e.preventDefault();
+  const n=$('afName').value.trim(),k=$('afKontakt').value.trim(),b=$('afBetreff').value.trim()||'Anfrage über die Website',t=$('afText').value.trim();
+  if(!n||!k||!t){toast('Bitte alle Pflichtfelder ausfüllen.');return false;}
+  const body='Name/Firma: '+n+'\nKontakt: '+k+'\n\n'+t+'\n\n— gesendet über example.de';
+  window.location.href='mailto:info@example.de?subject='+encodeURIComponent('[Anfrage] '+b)+'&body='+encodeURIComponent(body);
+  toast('E-Mail-Programm wird geöffnet …');closeSheet();return false;
+}
+
+/* ===== Footer ===== */
+function footerHTML(){
+  return '<div class="foot">'+
+    '<div class="bigbrand">Muster <i>Werbetechnik</i></div>'+
+    '[Straße Nr.] · [PLZ Ort] · Tel. [Telefon] · info@example.de<br>'+
+    '<a href="javascript:openLegal(\'impressum\')">Impressum</a>·<a href="javascript:openLegal(\'datenschutz\')">Datenschutz</a>'+
+    '<div style="margin-top:10px;font-size:.74rem;color:var(--ink-3)">Vorlage · Werbetechnik.</div>'+
+  '</div>';
+}
+
+/* ===== Detail-Sheets ===== */
+function openService(id){
+  const sv=SERVICES.find(x=>x.id===id);if(!sv)return;
+  openSheet(sv.title,
+    '<div class="sh-hero" data-slot="sv-'+sv.id+'">'+(sv.img?'<img src="'+h(sv.img)+'" alt="" onerror="this.style.display=\'none\'">':'')+artHTML(sv)+'</div>'+
+    '<div class="taglist"><span>'+h(sv.tag)+'</span></div>'+
+    '<p>'+h(sv.long)+'</p><h4>Das bieten wir</h4>'+
+    '<div class="taglist">'+sv.feats.map(f=>'<span>✓ '+h(f)+'</span>').join('')+'</div>',
+    '<button class="btn sec" onclick="closeSheet()">Schließen</button><button class="btn pri" onclick="openAnfrage(\''+h(sv.title)+'\')">Anfragen</button>');
+}
+function openRef(t,sub,icon,slot){
+  openSheet(t,
+    '<div class="sh-hero" data-slot="'+h(slot||'')+'"><span class="phi">'+icon+'</span></div>'+
+    '<p><b>'+h(sub)+'</b></p><p>Ein Referenzprojekt der Muster Werbetechnik – umgesetzt von Konzept bis Montage. Sie möchten ein ähnliches Projekt? Sprechen Sie uns an.</p>',
+    '<button class="btn sec" onclick="closeSheet()">Schließen</button><button class="btn pri" onclick="openAnfrage(\''+h(t)+'\')">Ähnliches anfragen</button>');
+}
+function openAnfrage(pref){openSheet('Anfrage senden',anfrageFormHTML(pref||''),'');}
+function openLegal(which){
+  const imp='<p><b>Muster Werbetechnik</b><br>[Straße Nr.]<br>[PLZ Ort]</p>'+
+    '<p>Telefon: [Telefon]<br>E-Mail: info@example.de</p>'+
+    '<p style="color:var(--ink-3);font-size:.85rem">Dies ist eine neutrale Gestaltungs-Vorlage. Vollständige Angaben gemäß § 5 TMG (Firmierung, Geschäftsführung, Registergericht, HRB, USt-IdNr.) werden vor Veröffentlichung ergänzt.</p>';
+  const ds='<p>Der Schutz Ihrer Daten ist uns wichtig. Diese Anwendung läuft als installierbare Web-App und speichert keine personenbezogenen Daten auf einem Server.</p>'+
+    '<p>Anfragen werden über Ihr eigenes E-Mail-Programm an info@example.de gesendet – es findet keine Datenübertragung im Hintergrund statt.</p>'+
+    '<p style="color:var(--ink-3);font-size:.85rem">Entwurf – die finale Datenschutzerklärung wird vor Veröffentlichung ergänzt.</p>';
+  openSheet(which==='impressum'?'Impressum':'Datenschutz',which==='impressum'?imp:ds,'<button class="btn pri block" onclick="closeSheet()">Schließen</button>');
+}
+
+/* ===== Sheet engine ===== */
+function openSheet(title,body,foot){
+  const m=$('modals');
+  m.innerHTML='<div class="sh-bg" onclick="if(event.target===this)closeSheet()">'+
+    '<div class="sheet"><div class="sh-handle"></div>'+
+    '<div class="sh-hdr"><div class="sh-title">'+h(title)+'</div><button class="sh-x" onclick="closeSheet()">✕</button></div>'+
+    '<div class="sh-body">'+body+'</div>'+
+    (foot!==''?'<div class="sh-foot">'+foot+'</div>':'')+'</div></div>';
+  bindTips(m);
+  if(window.TplImg)TplImg.apply(m);
+}
+function closeSheet(){$('modals').innerHTML='';}
+
+/* ===== Theme ===== */
+const THEMES=[
+  {key:'light',name:'Hell',desc:'Weiß & Rot – klar und freundlich',sw:['#ffffff','#f4f6fb','#E0231B']},
+  {key:'dark',name:'Dunkel',desc:'Augenschonend für abends',sw:['#161e2c','#0e1420','#E0231B']},
+  {key:'contrast',name:'Kontrast',desc:'Schwarz · Rot · Weiß – die Firmenfarben',sw:['#0a0a0c','#141417','#ff2a20']},
+];
+function applyTheme(k){
+  document.documentElement.setAttribute('data-theme',k);localStorage.setItem('tpl-theme',k);
+  const tc={light:'#E0231B',dark:'#0e1420',contrast:'#0a0a0c'}[k]||'#E0231B';
+  $('metaTheme').setAttribute('content',tc);
+  $('tbDark').textContent=(k==='dark'||k==='contrast')?'☀️':'🌙';
+  if(window.MycelBg)try{window.MycelBg.setTheme(k);}catch(e){}
+}
+function quickDark(){const cur=document.documentElement.getAttribute('data-theme');applyTheme(cur==='light'?'dark':'light');}
+function openThemes(){
+  const cur=document.documentElement.getAttribute('data-theme');
+  const body=THEMES.map(t=>'<div class="themeopt'+(t.key===cur?' on':'')+'" onclick="applyTheme(\''+t.key+'\');openThemes()">'+
+    '<span class="sw">'+t.sw.map(c=>'<i style="background:'+c+'"></i>').join('')+'</span>'+
+    '<div class="tl"><b>'+t.name+'</b><small>'+t.desc+'</small></div><span class="ck">✓</span></div>').join('');
+  openSheet('Design wählen',body,'<button class="btn pri block" onclick="closeSheet()">Fertig</button>');
+}
+
+/* ===== Navigation ===== */
+const RENDERED={};
+const RENDERERS=[renderStart,renderLeistungen,renderAnlagen,renderFaq,renderTeam,renderKontakt];
+function buildNav(){
+  $('bottomnav').innerHTML=NAV.map((n,i)=>'<button class="navbtn'+(i===0?' on':'')+'" id="nav-'+i+'" onclick="goTo('+i+')" data-tip="'+h(n.full)+'"><span class="ni">'+n.ico+'</span><span>'+h(n.label)+'</span></button>').join('');
+  $('topnav').innerHTML=NAV.map((n,i)=>'<button class="'+(i===0?'on':'')+'" id="tnav-'+i+'" onclick="goTo('+i+')">'+h(n.full)+'</button>').join('');
+}
+function goTo(i){
+  NAV.forEach((n,idx)=>{
+    $('sc-'+n.id).classList.toggle('on',idx===i);
+    $('nav-'+idx).classList.toggle('on',idx===i);
+    $('tnav-'+idx).classList.toggle('on',idx===i);
+  });
+  $('searchArea').classList.toggle('on',i===1);
+  if(!RENDERED[i]){RENDERERS[i]();RENDERED[i]=true;}
+  if(window.TplImg)TplImg.apply($('sc-'+NAV[i].id));
+  window.scrollTo(0,0);closeSheet();
+}
+
+/* ===== Scroll reveal ===== */
+let _io;
+function hookReveal(){
+  if(!_io){_io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');_io.unobserve(e.target);}});},{rootMargin:'0px 0px -8% 0px'});}
+  document.querySelectorAll('.reveal:not(.in)').forEach(el=>_io.observe(el));
+}
+
+/* ===== Tooltips ===== */
+let _tip;
+function showTip(el){
+  const txt=el.getAttribute('data-tip');if(!txt)return;
+  if(!_tip){_tip=document.createElement('div');_tip.className='wf-tip';document.body.appendChild(_tip);}
+  _tip.textContent=txt;const r=el.getBoundingClientRect();
+  _tip.style.left=Math.min(Math.max(8,r.left+r.width/2-120),innerWidth-248)+'px';
+  _tip.style.top=(r.bottom+8>innerHeight-60?r.top-44:r.bottom+8)+'px';
+  requestAnimationFrame(()=>_tip.classList.add('on'));
+}
+function hideTip(){if(_tip)_tip.classList.remove('on');}
+function bindTips(root){
+  (root||document).querySelectorAll('[data-tip]').forEach(el=>{
+    if(el._tb)return;el._tb=1;
+    el.addEventListener('mouseenter',()=>showTip(el));
+    el.addEventListener('mouseleave',hideTip);
+    let lp;
+    el.addEventListener('touchstart',()=>{lp=setTimeout(()=>showTip(el),420);},{passive:true});
+    el.addEventListener('touchend',()=>{clearTimeout(lp);setTimeout(hideTip,1200);});
+  });
+}
+
+/* ===== Install ===== */
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;
+  if(!localStorage.getItem('tpl-install-x'))$('installBar').classList.add('on');});
+function installApp(){if(!deferredPrompt){toast('Über das Browser-Menü „Zum Startbildschirm hinzufügen".');return;}
+  deferredPrompt.prompt();deferredPrompt.userChoice.finally(()=>{deferredPrompt=null;$('installBar').classList.remove('on');});}
+function dismissInstall(){$('installBar').classList.remove('on');localStorage.setItem('tpl-install-x','1');}
+window.addEventListener('appinstalled',()=>{$('installBar').classList.remove('on');toast('Installiert – viel Erfolg!');});
+
+/* ===== Splash ===== */
+let splashDone=false;
+function runSplash(){
+  if(matchMedia('(prefers-reduced-motion:reduce)').matches){
+    $('spGalaxy').classList.add('grow');$('spEmblem').classList.add('open');$('spWord').classList.add('on');
+    setTimeout(endSplash,900);return;
+  }
+  $('spGalaxy').classList.add('grow');
+  setTimeout(()=>$('spEmblem').classList.add('open'),250);
+  setTimeout(()=>$('spWord').classList.add('on'),1500);
+  setTimeout(()=>$('spFlash').classList.add('go'),2100);
+  setTimeout(endSplash,2900);
+}
+function endSplash(){if(splashDone)return;splashDone=true;$('splash').classList.add('gone');setTimeout(()=>{const s=$('splash');if(s)s.remove();},700);}
+function skipSplash(){endSplash();}
+
+/* ===== Init ===== */
+applyTheme(localStorage.getItem('tpl-theme')||'light');
+buildNav();
+goTo(0);
+bindTips(document);
+runSplash();
+if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+</script>
+
+
+
+</body>
+</html>
