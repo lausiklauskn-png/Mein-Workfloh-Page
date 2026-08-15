@@ -30,7 +30,12 @@
 :root{
   --accent:#E0231B; --accent-d:#b41a10; --accent-soft:#fde7e5;
   --bg:#f4f6fb; --surface:#ffffff; --surface-2:#f8fafc; --line:#e4e8f0;
-  --ink:#16202e; --ink-2:#5a6b80; --ink-3:#90a0b4;
+  /* --ink-3 war #90a0b4 und damit auf dem Grund #f4f6fb bei 2,47:1 — gefordert
+     sind 4,5:1. Es trägt die Nav-Beschriftungen, die Fußzeile und den Zusatz
+     neben dem Markennamen; PageSpeed hat sie am 2026-08-15 alle angemahnt.
+     #5e728b ist derselbe Blaugrau-Ton, nur auf 72 % Helligkeit: 4,56:1 auf dem
+     Grund, 4,93:1 auf Weiß. Ausgerechnet, nicht gegriffen (Bauregel 2.4). */
+  --ink:#16202e; --ink-2:#5a6b80; --ink-3:#5e728b;
   --ok:#16a34a; --ok-soft:#dcfce7; --warn:#d97706; --danger:#dc2626; --danger-soft:#fee2e2;
   --radius:16px; --radius-s:10px; --shadow:0 4px 20px rgba(20,40,80,.08);
   --shadow-lg:0 12px 40px rgba(20,40,80,.16); --fs:15px;
@@ -42,7 +47,11 @@
 /* Dunkel */
 html[data-theme="dark"]{
   --bg:#0e1420; --surface:#161e2c; --surface-2:#1c2636; --line:#2a3648;
-  --ink:#eef2f8; --ink-2:#a4b2c6; --ink-3:#6f8098;
+  /* Im dunklen Thema lag --ink-3 auf dem Grund bei 4,58:1 und war damit knapp
+     in Ordnung — auf --surface (#161e2c) aber nur bei 4,15:1, und genau dort
+     steht die untere Navigationsleiste. #77879d ist derselbe Ton, 5 % heller:
+     4,57:1 auf der Fläche, 5,03:1 auf dem Grund. */
+  --ink:#eef2f8; --ink-2:#a4b2c6; --ink-3:#77879d;
   --accent-soft:#2a1414; --ok-soft:#10261a; --danger-soft:#2a1414;
   --shadow:0 4px 20px rgba(0,0,0,.4); --shadow-lg:0 12px 40px rgba(0,0,0,.55);
 }
@@ -454,7 +463,11 @@ html[data-theme="dark"] #bg,html[data-theme="contrast"] #bg{opacity:.8}
 <!-- ===== Topbar ===== -->
 <header class="topbar">
   <div class="brand" onclick="goTo(0)" data-tip="Zur Startseite">
-    <img class="logo" src="icon-192.png" alt="Logo">
+    <!-- width/height sind die ECHTEN Maße der Datei (192×192), nicht die
+         Anzeigegröße — das CSS setzt die Höhe auf 46 px. Der Browser kennt
+         damit das Seitenverhältnis, bevor das Bild da ist, und hält den Platz
+         frei. Ohne die Angaben sprang die Kopfleiste (PageSpeed 2026-08-15). -->
+    <img class="logo" src="icon-192.png" alt="Logo" width="192" height="192">
     <span class="nm"><b>W<i>T</i></b><small>Werbetechnik</small></span>
   </div>
   <nav class="topnav" id="topnav"></nav>
@@ -504,7 +517,38 @@ html[data-theme="dark"] #bg,html[data-theme="contrast"] #bg{opacity:.8}
 <div id="toasts"></div>
 
 <script src="effects.js"></script>
-<script type="module" src="assets/mycel-bg.js"></script>
+<!-- Der Hintergrund wird ERST NACH dem Laden geholt (Bauregel Skripte 1).
+     Vorher stand hier ein gewöhnliches Modul-Skript, und PageSpeed hat am
+     2026-08-15 an vier Stellen dasselbe gemeldet:
+       · kritischer Pfad 832 ms, drittes Glied: three.module.min.js, 165 KiB
+       · "nicht verwendetes JavaScript": davon 95 KiB nie ausgeführt
+       · die ZWANZIG längsten Aufgaben im Hauptthread: alle mycel-bg.js
+       · LCP: 1.940 ms reine Rendering-Verzögerung, bei 0 ms Serverzeit
+     Der Hintergrund ist Schmuck. Er darf den Text nicht aufhalten, den ein
+     Besucher lesen will. Nach `load` in der Leerlauf-Pause geholt, ist er
+     immer noch da — nur nicht mehr im Weg. Dasselbe Muster hat an
+     Mein-WorkFloh gemessen 85 → 95 gebracht. -->
+<script>
+(function () {
+  "use strict";
+  function pause(f) {
+    /* kleiner Timeout: requestIdleCallback ruft SPÄTESTENS danach auf, damit
+       eine beschäftigte Seite den Hintergrund nicht auf die lange Bank schiebt */
+    if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(f, { timeout: 800 });
+    else setTimeout(f, 32);
+  }
+  function holen() {
+    var s = document.createElement("script");
+    s.type = "module";
+    s.src = "assets/mycel-bg.js";
+    /* onerror wie onload: fehlt die Datei, läuft die Seite trotzdem weiter —
+       der Hintergrund ist dann eben nicht da (fail-soft, Fremdnutzer-Brille) */
+    document.body.appendChild(s);
+  }
+  if (document.readyState === "complete") pause(holen);
+  else window.addEventListener("load", function () { pause(holen); });
+})();
+</script>
 <script>
 'use strict';
 /* ===== Helpers ===== */

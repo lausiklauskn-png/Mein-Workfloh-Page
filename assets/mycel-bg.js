@@ -168,7 +168,18 @@ if (canvas) {
   function renderOnce() { applyScroll(); renderer.render(scene, camera); }
 
   let last = performance.now();
+  /* Ruht, solange der Reiter im Hintergrund liegt. Ohne das rechnete der
+     Hintergrund weiter, während niemand hinsieht — auf einem Handy heißt das
+     Akku für ein Bild, das gar nicht auf dem Schirm ist. Beim Zurückkommen
+     wird die Uhr neu gestellt, sonst springt die Drehung um die ganze
+     verpasste Zeit auf einmal weiter. */
+  let laeuft = true;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { laeuft = false; return; }
+    if (!laeuft) { laeuft = true; last = performance.now(); if (!reduce) requestAnimationFrame(tick); }
+  });
   function tick() {
+    if (!laeuft) return;
     const now = performance.now();
     const dt = (now - last) / 1000; last = now;
     mat.uniforms.uTime.value = now / 1000;
