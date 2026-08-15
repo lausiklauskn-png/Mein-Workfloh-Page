@@ -1,14 +1,25 @@
 /* Muster Werbetechnik — Service Worker (Offline + Installierbarkeit)
    Cache-Name als Versionsstempel: bei jeder Auslieferung +1.
    HTML = Network-First (frische Seite, sonst Cache), Assets = Cache-First. */
-/* v3 (2026-08-15): index.html und assets/mycel-bg.js haben sich geändert
-   (Hintergrund wird erst nach dem Laden geholt, Kontrast-Farben, Logo-Maße).
-   Ohne diese Erhöhung liefert der Vorrat bei jedem Wiederbesucher weiter die
-   alte Fassung — und die Messung sähe unverändert aus. */
-const CACHE = 'werbetechnik-page-v3';
+/* 2026-08-15, zwei Erhöhungen an einem Tag:
+     v3  Kontrast-Farben, Logo-Maße, Hintergrund nach dem Laden
+     v4  mycel-bg.js hat den Grafikchip-Wächter + die Selbst-Bremse bekommen
+   Ohne die Erhöhung liefert der Vorrat jedem Wiederbesucher weiter die alte
+   Fassung — und eine neue Messung sähe unverändert aus. */
+const CACHE = 'werbetechnik-page-v4';
+/* three.module.min.js steht mit Absicht NICHT mehr hier (2026-08-15, dieselbe
+   Entscheidung wie in family-project/sw.js).
+   Seit der Hintergrund den Grafikchip prüft, wird die Bibliothek auf jedem
+   Gerät ohne Grafikbeschleunigung GAR NICHT geholt — sie vorsorglich in den
+   Vorrat zu legen hieße, jedem Erstbesucher 165 KiB für etwas aufzuladen, das
+   er womöglich nie benutzt. Wird sie doch angefordert, legt der fetch-Handler
+   weiter unten sie ganz normal ab.
+   Ehrlich dazu: das verbessert den Lighthouse-Wert nicht. Lighthouse misst den
+   ersten Aufbau, der Service Worker legt erst danach los. Es spart echten
+   Besuchern Datenvolumen — mehr nicht, aber auch nicht weniger. */
 const ASSETS = [
   './', 'index.html', 'effects.js', 'manifest.webmanifest',
-  'assets/mycel-bg.js', 'vendor/three.module.min.js',
+  'assets/mycel-bg.js',
   'icon-192.png', 'icon-512.png', 'icon-512-maskable.png'
 ];
 

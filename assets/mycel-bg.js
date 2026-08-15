@@ -3,9 +3,59 @@
  * Umgefärbt auf die Vorlagen-Farben (Rot / Schwarz / Weiß / Grau).
  * Punkt-Wolke mit Funkel-/Stern-Shader + Hyphen-Linien, AdditiveBlending.
  * Themen via window.MycelBg.setTheme('light'|'dark'|'contrast').
+ *
+ * ── NACHGEZOGEN 2026-08-15 ──────────────────────────────────────────────────
+ * Diese Datei war die EINZIGE im Netz, die noch die Fassung von vor den beiden
+ * Härtungen trug. Die Schwestern hatten sie längst:
+ *
+ *   Datei                       Grafikchip-Wächter   Selbst-Bremse   Leistung
+ *   Tomys Hub                          –                  ✅            94
+ *   family-project                     ✅                 ✅            89
+ *   diese hier (vorher)                –                  –             62
+ *
+ * Der Befund, der es zeigte (PageSpeed, Computer): FCP 0,3 s · LCP 0,4 s ·
+ * CLS 0,028 — alles grün. Und Blockierzeit **23.490 ms**. Der Seitenaufbau war
+ * längst in Ordnung; es war allein die Dauer-Renderschleife.
+ *
+ * Beide Schutzstufen sind aus `family-project/assets/mycel-bg.js` übernommen,
+ * mit den dort gemessenen Zahlen. Die Farben dieser Vorlage bleiben unberührt.
+ * ────────────────────────────────────────────────────────────────────────────
  */
-import * as THREE from 'three';
 
+/* Gibt es überhaupt einen echten Grafikchip? (Klaus' Entscheid 2026-08-08)
+ *
+ * Die Selbst-Bremse weiter unten misst die BILDRATE — sie merkt also erst,
+ * dass es hoffnungslos ist, nachdem sie ein paar Bilder gerechnet hat. Auf
+ * einem Gerät ohne Grafikbeschleunigung kostet jedes davon rund 1,4 s.
+ * Gemessen an der Schwester-Seite Mein-Rezeptbuch-Page: Blockierzeit 10,3 s
+ * TROTZ Bremse; ganz ohne Hintergrund 0 ms, bei Leistung 87 statt 48.
+ *
+ * Diese Prüfung stellt die Frage vorher und beantwortet sie in Mikrosekunden:
+ * WebGL sagt selbst, wer zeichnet. Steht dort ein Software-Rasterizer
+ * (SwiftShader, llvmpipe, Mesa offscreen — so läuft JEDES Prüfgerät bei
+ * PageSpeed und manches alte Handy), wird der Hintergrund GAR NICHT aufgebaut:
+ * kein three.js, keine 8000 Punkte, kein Schattierer. Die Seite zeigt dann ihre
+ * eigene Farbe, alles andere bleibt wie es ist.
+ *
+ * Auf einem Gerät mit echtem Chip ändert sich nichts.
+ *
+ * FAIL-SOFT IN BEIDE RICHTUNGEN: verrät der Browser den Namen nicht (manche
+ * Datenschutz-Einstellungen verbergen ihn), läuft der Hintergrund normal
+ * weiter — Vorsicht darf keine Bestrafung sein. Gibt es gar kein WebGL, könnte
+ * er ohnehin nicht laufen.                                                  */
+function keinGrafikchip() {
+  try {
+    var c = document.createElement('canvas');
+    var gl = c.getContext('webgl2') || c.getContext('webgl');
+    if (!gl) return true;                                  // kein WebGL: ginge sowieso nicht
+    var dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    var name = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '') : '';
+    // Kein Name preisgegeben -> im Zweifel laufen lassen.
+    return /swiftshader|llvmpipe|software|mesa offscreen|microsoft basic/i.test(name);
+  } catch (_e) { return true; }
+}
+
+function mycelBgStarten(THREE) {
 const canvas = document.getElementById('bg');
 if (canvas) {
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -176,12 +226,46 @@ if (canvas) {
   let laeuft = true;
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { laeuft = false; return; }
-    if (!laeuft) { laeuft = true; last = performance.now(); if (!reduce) requestAnimationFrame(tick); }
+    if (!laeuft) { laeuft = true; last = performance.now(); if (!reduce && !gebremst) requestAnimationFrame(tick); }
   });
+
+  /* ── Selbst-Bremse (Klaus' Entscheid 2026-08-02, hier nachgezogen) ────────
+   * Auf einem Gerät MIT Grafikbeschleunigung kostet ein Bild ~2 ms. Ohne
+   * (alte Handys, und jedes Prüfgerät bei PageSpeed) sind es 180–255 ms.
+   * Genau das stand in Klaus' Bericht vom 2026-08-15: die zwanzig längsten
+   * Aufgaben waren alle diese Datei, Blockierzeit 23.490 ms.
+   *
+   * Dort ruckelt die Bewegung ohnehin nur und blockiert dabei die Bedienung.
+   * Wird es dauerhaft zu langsam, bleibt ein STATISCHES Bild stehen — genau
+   * dasselbe, das Geräte mit „Bewegung reduzieren" von jeher bekommen. Der
+   * Hintergrund verschwindet nicht, er hört nur auf, sich zu drehen.
+   *
+   * Auf einem echten Gerät greift die Bremse nie: dort liegt dt bei ~0,016 s,
+   * die Schwelle bei 0,05 s. Die ersten Bilder zählen nicht mit (der erste
+   * Aufbau ist immer teurer), und ein einzelner Ausreißer setzt den Zähler
+   * zurück — es braucht fünf langsame Bilder HINTEREINANDER.
+   *
+   * Gemessen an der Schwester-Seite (Lighthouse, gedrosselt, ohne Grafik):
+   * Blockierzeit 163.000 ms -> 7.480 ms, Leistung 49 -> 59.                */
+  const BREMS_SCHWELLE = 0.05;   // Sekunden pro Bild = 20 Bilder/s
+  const BREMS_GEDULD   = 5;      // so viele langsame Bilder hintereinander
+  const AUFWAERM_BILDER = 3;     // erste Bilder nicht bewerten
+  let langsamInFolge = 0, bilderGezaehlt = 0, gebremst = false;
+
   function tick() {
     if (!laeuft) return;
     const now = performance.now();
     const dt = (now - last) / 1000; last = now;
+
+    if (bilderGezaehlt++ >= AUFWAERM_BILDER) {
+      if (dt > BREMS_SCHWELLE) langsamInFolge++; else langsamInFolge = 0;
+      if (langsamInFolge >= BREMS_GEDULD) {
+        gebremst = true;
+        renderOnce();            // ein letztes, stehendes Bild
+        return;                  // Schleife endet — kein Dauerlauf mehr
+      }
+    }
+
     mat.uniforms.uTime.value = now / 1000;
     grp.rotation.y += dt * 0.02;
     applyScroll();
@@ -190,3 +274,38 @@ if (canvas) {
   }
   if (reduce) renderOnce(); else requestAnimationFrame(tick);
 }
+}
+
+/* Der Anstoß: erst nach „load", und dann erst, wenn der Hauptfaden Luft hat.
+ *
+ * Ohne Grafikchip wird three.js GAR NICHT GEHOLT — 165 KiB, die auf so einem
+ * Gerät nichts mehr ausrichten könnten. Das ist der Grund, warum der Wächter
+ * hier oben steht und nicht erst im Renderer: eine Bibliothek, die man nicht
+ * braucht, lädt man auch nicht.
+ *
+ * Schlägt das Nachladen fehl, bleibt die Seite voll benutzbar — nur ohne
+ * bewegten Hintergrund (fail-soft). */
+(function () {
+  const los = () => {
+    if (keinGrafikchip()) return;
+    import('three')
+      .then((m) => {
+        mycelBgStarten(m);
+        /* Das Thema MIT NAMEN nachreichen. `setTheme()` ohne Argument fiele auf
+           `dark` zurück (THEME_COLORS[undefined] || THEME_COLORS.dark) — die
+           Seite startet aber hell, und der Hintergrund stünde in den falschen
+           Farben da. Zu diesem Zeitpunkt hat die Seite ihr Thema längst ans
+           <html> geschrieben, also wird es dort abgelesen. */
+        if (window.MycelBg) {
+          try { window.MycelBg.setTheme(document.documentElement.getAttribute('data-theme') || 'light'); }
+          catch (_e) {}
+        }
+      })
+      .catch(() => {});
+  };
+  const gleich = () => (window.requestIdleCallback
+    ? requestIdleCallback(los, { timeout: 2000 })
+    : setTimeout(los, 200));
+  if (document.readyState === 'complete') gleich();
+  else window.addEventListener('load', gleich, { once: true });
+})();
