@@ -1,12 +1,13 @@
 /* Muster Werbetechnik — Service Worker (Offline + Installierbarkeit)
    Cache-Name als Versionsstempel: bei jeder Auslieferung +1.
    HTML = Network-First (frische Seite, sonst Cache), Assets = Cache-First. */
-/* 2026-08-15, zwei Erhöhungen an einem Tag:
+/* 2026-08-15, drei Erhöhungen an einem Tag:
      v3  Kontrast-Farben, Logo-Maße, Hintergrund nach dem Laden
      v4  mycel-bg.js hat den Grafikchip-Wächter + die Selbst-Bremse bekommen
+     v5  Fußzeilen-Wort auf eine kontraststarke Marken-Abstufung
    Ohne die Erhöhung liefert der Vorrat jedem Wiederbesucher weiter die alte
    Fassung — und eine neue Messung sähe unverändert aus. */
-const CACHE = 'werbetechnik-page-v4';
+const CACHE = 'werbetechnik-page-v5';
 /* three.module.min.js steht mit Absicht NICHT mehr hier (2026-08-15, dieselbe
    Entscheidung wie in family-project/sw.js).
    Seit der Hintergrund den Grafikchip prüft, wird die Bibliothek auf jedem
