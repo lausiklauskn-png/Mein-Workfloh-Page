@@ -366,7 +366,20 @@ html[data-theme="dark"] .taglist span,html[data-theme="contrast"] .taglist span{
 .foot a{color:var(--ink-2);text-decoration:none;margin:0 6px}
 .foot a:hover{color:var(--accent)}
 .foot .bigbrand{font-weight:900;color:var(--ink-2);font-size:1rem;margin-bottom:4px}
-.foot .bigbrand i{color:var(--accent);font-style:normal}
+/* Das einzige Element, das PageSpeed am 2026-08-15 noch als zu schwach
+   gemeldet hat — das Wort „Werbetechnik" in der Fußzeile.
+   Es ist 16 px fett und damit KEIN „großer Text": gefordert sind 4,5:1, nicht
+   3,0. Es steht als einziges rotes Kleinteil direkt auf dem Seitengrund; in den
+   Karten liegt dasselbe Rot auf Weiß und ist dort mit 4,75:1 in Ordnung.
+     hell      #E0231B auf #f4f6fb  4,39  fehlten 0,11
+     dunkel    #E0231B auf #0e1420  3,88
+     kontrast  #ff2a20 auf #0a0a0c  5,28  war schon gut
+   Beide Ersatzfarben sind Klaus' eigene Marken-Abstufungen, die schon im Code
+   stehen: --accent-d (dunkler) und --accent2 (heller). Das Markenrot selbst
+   bleibt überall sonst unangetastet — Logo, Knöpfe, Überschriften. */
+.foot .bigbrand i{color:var(--accent-d);font-style:normal}                    /* 6,27:1 */
+html[data-theme="dark"] .foot .bigbrand i{color:var(--accent2)}               /* 6,61:1 */
+html[data-theme="contrast"] .foot .bigbrand i{color:var(--accent)}            /* 5,28:1 */
 
 /* ---- splash ---- */
 #splash{position:fixed;inset:0;z-index:200;display:grid;place-items:center;overflow:hidden;
