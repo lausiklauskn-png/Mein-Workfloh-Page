@@ -1,7 +1,11 @@
 /* Muster Werbetechnik — Service Worker (Offline + Installierbarkeit)
    Cache-Name als Versionsstempel: bei jeder Auslieferung +1.
    HTML = Network-First (frische Seite, sonst Cache), Assets = Cache-First. */
-const CACHE = 'werbetechnik-page-v2';
+/* v3 (2026-08-15): index.html und assets/mycel-bg.js haben sich geändert
+   (Hintergrund wird erst nach dem Laden geholt, Kontrast-Farben, Logo-Maße).
+   Ohne diese Erhöhung liefert der Vorrat bei jedem Wiederbesucher weiter die
+   alte Fassung — und die Messung sähe unverändert aus. */
+const CACHE = 'werbetechnik-page-v3';
 const ASSETS = [
   './', 'index.html', 'effects.js', 'manifest.webmanifest',
   'assets/mycel-bg.js', 'vendor/three.module.min.js',
