@@ -1,0 +1,11 @@
+{
+  "name": "mein-workfloh-page",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Muster Werbetechnik — zugleich SBKIM-Endknoten",
+  "scripts": {
+    "test": "node tools/drift-guard.mjs && node tests/sbkim.smoke.mjs",
+    "gegenprobe": "node tests/sbkim.gegenprobe.mjs",
+    "serve": "python3 -m http.server 8000"
+  }
+}

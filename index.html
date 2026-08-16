@@ -986,5 +986,72 @@ if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.ser
 
 
 
+
+<!-- ══ SBKIM — Muster Werbetechnik als eigener Knoten im Mycel ═════════════════════
+     Macht aus der Vorlagen-Seite zusätzlich einen vollen SBKIM-Endknoten: eigene
+     Identität + Spore, das schwebende Netz-Fenster („🌐 Mit dem Netz
+     verbinden"), die Status-Lampen-Leiste und das selbstausfüllende Siegel.
+
+     DIE KETTE WIRD NACH DEM LADEN GEHOLT, in der Leerlaufpause — nicht als
+     gewöhnliche <script src>-Zeilen. Das ist hier kein Feinschliff, sondern
+     Pflicht: die Messwerte dieser Seite stehen öffentlich im Marktplatz. Ein
+     Dutzend Module auf dem kritischen Pfad hätte sie gedrückt, für Technik,
+     die zum ersten Eindruck nichts beiträgt. Dasselbe Muster brachte an
+     Mein-WorkFloh gemessen 85 → 95.
+
+     DIE REIHENFOLGE IST PFLICHT und nicht willkürlich:
+       · 01_storage zuerst, dann SOFORT storage-init — sonst greift eine
+         andere App auf dieselbe Schublade zu (geteilte Adresse).
+       · 17_floating_widget VOR 15_membran und 16_siegel — das Widget legt
+         die Anker #lamp-fremd + #sbkim-siegel-badge an, an die sich Wächter
+         und Siegel hängen. Andersherum hängen sie ins Leere.
+       · siegel-inhalt zuletzt — es füllt das Modal, das 16 aufgemacht hat.
+
+     Fällt eine Datei aus, läuft die Kette weiter (onerror wie onload) und die
+     Boutique bleibt vollständig bedienbar. Kein toter Knopf, kein Absturz. -->
+<script>
+(function () {
+  "use strict";
+  var KANON = [
+    "./modules/03_embedding.js",
+    "./modules/01_storage.js",
+    "./assets/storage-init.js",
+    "./modules/04_match.js",
+    "./modules/02_spore.js",
+    "./modules/noble-secp256k1.js",
+    "./modules/05_anastomose.js",
+    "./modules/23_rendezvous.js",
+    "./modules/23_rendezvous_ui.js",
+    "./modules/17_floating_widget.js",
+    "./modules/07_apoptose.js",
+    "./modules/15_membran.js",
+    "./modules/16_siegel.js",
+    "./assets/nostr-listen-init.js",
+    "./assets/rendezvous-init.js",
+    "./assets/schutz-init.js",
+    "./assets/siegel-inhalt.js"
+  ];
+  function pause(f) {
+    /* kleiner Timeout: requestIdleCallback ruft SPÄTESTENS danach auf, damit
+       eine beschäftigte Seite die Kette nicht auf die lange Bank schiebt */
+    if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(f, { timeout: 500 });
+    else setTimeout(f, 16);
+  }
+  function naechste(i) {
+    if (i >= KANON.length) return;
+    var s = document.createElement("script");
+    s.src = KANON[i];
+    s.onload = s.onerror = function () { pause(function () { naechste(i + 1); }); };
+    document.body.appendChild(s);
+  }
+  if (document.readyState === "complete") pause(function () { naechste(0); });
+  else window.addEventListener("load", function () { naechste(0); });
+})();
+</script>
+<!-- Modul 05b (Relais-Client) ist ein ES-Modul und importiert noble relativ —
+     es kann deshalb nicht über die Kette oben nachgeladen werden. `defer` hält
+     es trotzdem vom kritischen Pfad fern. -->
+<script type="module" src="./modules/05b_nostr_relay.js" defer></script>
+
 </body>
 </html>
