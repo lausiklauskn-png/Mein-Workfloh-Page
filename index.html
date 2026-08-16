@@ -460,6 +460,23 @@ html[data-theme="dark"] #bg,html[data-theme="contrast"] #bg{opacity:.8}
 
 
 </style>
+<!-- ══ Eigene Schublade — MUSS vor jedem SBKIM-Modul stehen ═════════════════
+     Modul 01 liest `window.SBKIM_DB_SUFFIX` beim LADEN und macht daraus seinen
+     Vorgabe-Namen. Fehlt die Zeile, ist der Vorgabe-Name die GETEILTE Schublade
+     `sbkim` — und alle Apps auf lausiklauskn-png.github.io liegen unter EINER
+     Adresse, teilen sich also einen Datenbank-Namensraum.
+
+     `storage-init.js` ruft zwar `SbkimStorage.init({dbSuffix})`, aber das ist
+     ASYNCHRON: greift irgendein Modul vorher auf den Speicher zu, ist die
+     geteilte Schublade längst offen. Modul 01 beschreibt genau diesen Fall in
+     seinem Kopf als Fall (B).
+
+     Die Folge sah Klaus am 2026-08-16 im Browser: der Andock-Wizard von Alis
+     Moderaum zeigte die Bedeutungs-Beschreibung von Muster Werbetechnik — er
+     las die Spore aus dem gemeinsamen Topf. Aus einer falschen Beschreibung
+     entsteht ein falscher Vektor, und damit findet der Knoten die falschen
+     Nachbarn. -->
+<script>window.SBKIM_DB_SUFFIX="workflohpage";</script>
 </head>
 <body>
 <canvas id="bg" aria-hidden="true"></canvas>
