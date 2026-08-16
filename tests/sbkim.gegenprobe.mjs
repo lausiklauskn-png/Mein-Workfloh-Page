@@ -34,6 +34,7 @@ const AKTEN = [
   "assets/schutz-init.js",
   "assets/siegel-inhalt.js",
   "modules/23_rendezvous_ui.js",
+  "sw.js",
 ];
 const sicher = Object.fromEntries(AKTEN.map((a) => [a, readFileSync(P(a), "utf-8")]));
 
@@ -101,6 +102,26 @@ const FAELLE = [
       h = h.replace("</body>", '<script>window.SBKIM_DB_SUFFIX="workflohpage";</script></body>');
       schreib("index.html", h);
     },
+  },
+  {
+    was: "Modul 05b (Relais-Client) ist gar nicht eingebunden",
+    bauen: () => schreib("index.html", sicher["index.html"].replace(/<script type="module" src="\.\/modules\/05b_nostr_relay\.js"[^>]*><\/script>/, "")),
+  },
+  {
+    was: "Modul 05 (Anastomose) aus der Kette gefallen",
+    bauen: () => schreib("index.html", sicher["index.html"].replace('    "./modules/05_anastomose.js",\n', "")),
+  },
+  {
+    was: "05b steht in der Kette statt als ES-Modul (dort läuft es nie)",
+    bauen: () => {
+      let h = sicher["index.html"].replace(/<script type="module" src="\.\/modules\/05b_nostr_relay\.js"[^>]*><\/script>/, "");
+      h = h.replace('    "./modules/05_anastomose.js",\n', '    "./modules/05_anastomose.js",\n    "./modules/05b_nostr_relay.js",\n');
+      schreib("index.html", h);
+    },
+  },
+  {
+    was: "der Offline-Vorrat kennt Modul 05b nicht",
+    bauen: () => schreib("sw.js", sicher["sw.js"].replace(/^.*modules\/05b_nostr_relay\.js.*$/m, "")),
   },
   {
     was: "Wappen-Band ohne Gravur (ribbonText fehlt)",

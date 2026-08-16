@@ -129,6 +129,45 @@ sage(setzStelle > -1 && setzStelle < html.indexOf("./modules/01_storage.js"),
 sage(setzStelle > -1 && setzStelle < html.indexOf("</head>"),
      "die SETZ-ZEILE steht im Kopf, nicht irgendwo im Rumpf");
 
+// ── 4c · JEDES Pflicht-Modul ist verdrahtet — namentlich ────────────────────
+// Klaus' Befund 2026-08-16: das Netz-Panel meldete „Kein Nostr-Relais-Client
+// (Modul 05b) verfügbar". Die alte Prüfung zählte nur, ob Dateien DALIEGEN —
+// ob sie auch GELADEN werden, stand nirgends. 05b ist der Sonderfall, an dem
+// das auffiel: es ist ein ES-Modul und kann deshalb NICHT über die
+// Leerlauf-Kette nachgeladen werden, es braucht eine eigene Zeile. Wer die
+// vergisst, hat alle Dateien im Repo und trotzdem kein Relais.
+//
+// Modul 05 (Anastomose) und 05b (Relais-Client) sind PFLICHT, nicht Zubehör:
+// ohne 05 kein Handshake, ohne 05b kein Raum. Beide werden hier namentlich
+// verlangt.
+const PFLICHT = [
+  "01_storage", "02_spore", "03_embedding", "04_match", "05_anastomose",
+  "07_apoptose", "15_membran", "16_siegel", "17_floating_widget",
+  "23_rendezvous", "23_rendezvous_ui",
+];
+for (const m of PFLICHT) {
+  sage(html.includes(`"./modules/${m}.js"`), `die Kette lädt Modul ${m}`);
+}
+// 05b geht NICHT über die Kette — es ist ein ES-Modul mit relativem Import.
+sage(/<script[^>]+type="module"[^>]+src="\.\/modules\/05b_nostr_relay\.js"/.test(html),
+     "Modul 05b ist als ES-Modul eingebunden (eigene Zeile, nicht über die Kette)");
+sage(!/"\.\/modules\/05b_nostr_relay\.js"/.test(html.replace(/<script[^>]*>/g, "")),
+     "Modul 05b steht NICHT zusätzlich in der Kette (dort liefe es nie)");
+sage(/\.\/modules\/noble-secp256k1\.js/.test(html),
+     "noble liegt bereit — 05b importiert es relativ");
+
+// ── 4d · Der Offline-Vorrat trägt die Kette ─────────────────────────────────
+// Der fetch-Handler antwortet ZUERST aus dem Speicher. Ein Modul, das nie im
+// Vorrat war, muss jedes Mal übers Netz kommen — und offline gar nicht. Dann
+// ist das Netz-Fenster tot, ohne dass die Seite kaputt aussieht.
+if (existsSync(join(ROOT, "sw.js"))) {
+  const sw = lies("sw.js");
+  for (const m of [...PFLICHT, "05b_nostr_relay", "noble-secp256k1"]) {
+    sage(sw.includes(`modules/${m}.js`), `Vorrat enthält Modul ${m}`);
+  }
+  for (const g of KLEBSTOFF) sage(sw.includes(`assets/${g}.js`), `Vorrat enthält ${g}.js`);
+}
+
 // ── 5 · Die App selbst ist unberührt ───────────────────────────────────────
 sage(/<script\s+src="effects\.js"/.test(html), "die App lädt weiter effects.js");
 
