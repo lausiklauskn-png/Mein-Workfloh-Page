@@ -7,7 +7,7 @@
      v5  Fußzeilen-Wort auf eine kontraststarke Marken-Abstufung
    Ohne die Erhöhung liefert der Vorrat jedem Wiederbesucher weiter die alte
    Fassung — und eine neue Messung sähe unverändert aus. */
-const CACHE = 'werbetechnik-page-v5';
+const CACHE = 'werbetechnik-page-v6';
 /* three.module.min.js steht mit Absicht NICHT mehr hier (2026-08-15, dieselbe
    Entscheidung wie in family-project/sw.js).
    Seit der Hintergrund den Grafikchip prüft, wird die Bibliothek auf jedem
@@ -21,7 +21,30 @@ const CACHE = 'werbetechnik-page-v5';
 const ASSETS = [
   './', 'index.html', 'effects.js', 'manifest.webmanifest',
   'assets/mycel-bg.js',
-  'icon-192.png', 'icon-512.png', 'icon-512-maskable.png'
+  'icon-192.png', 'icon-512.png', 'icon-512-maskable.png',
+  /* Die SBKIM-Kette gehört in den Vorrat. Ohne sie ist das Netz-Fenster
+     offline tot, und online hängt es am Zufall: der fetch-Handler antwortet
+     zuerst aus dem Speicher. Fehlt eines der Module — typisch 05b, der
+     Relais-Client —, meldet das Panel „Kein Nostr-Relais-Client (Modul 05b)
+     verfügbar" und der Raum lässt sich nicht lesen. */
+  'modules/01_storage.js',
+  'modules/02_spore.js',
+  'modules/03_embedding.js',
+  'modules/04_match.js',
+  'modules/05_anastomose.js',
+  'modules/05b_nostr_relay.js',
+  'modules/07_apoptose.js',
+  'modules/15_membran.js',
+  'modules/16_siegel.js',
+  'modules/17_floating_widget.js',
+  'modules/23_rendezvous.js',
+  'modules/23_rendezvous_ui.js',
+  'modules/noble-secp256k1.js',
+  'assets/storage-init.js',
+  'assets/rendezvous-init.js',
+  'assets/schutz-init.js',
+  'assets/nostr-listen-init.js',
+  'assets/siegel-inhalt.js',
 ];
 
 self.addEventListener('install', e => {
