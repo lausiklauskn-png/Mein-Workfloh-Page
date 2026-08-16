@@ -103,6 +103,32 @@ sage(/s\.onload = s\.onerror/.test(html), "eine fehlende Datei hält die Kette n
 sage(!/<script[^>]+src="\.\/modules\/(01|02|04|15|16|17|23)_/.test(html),
      "kein Kanon-Modul liegt als gewöhnliche <script src>-Zeile im Dokument");
 
+// ── 4b · Die eigene Schublade steht FRÜH ────────────────────────────────────
+// Das ist die Prüfung, die am 2026-08-16 gefehlt hat. Modul 01 liest
+// `window.SBKIM_DB_SUFFIX` BEIM LADEN und macht daraus seinen Vorgabe-Namen.
+// Fehlt die Zeile, ist der Vorgabe-Name die GETEILTE Schublade `sbkim` — und
+// alle Apps liegen unter EINER Adresse. `storage-init.js` ruft zwar
+// `SbkimStorage.init({dbSuffix})`, aber ASYNCHRON: greift ein Modul vorher zu,
+// ist der geteilte Topf längst offen. Modul 01 nennt das in seinem Kopf Fall (B).
+//
+// Was Klaus davon sah: der Andock-Wizard von Alis Moderaum zeigte die
+// Bedeutungs-Beschreibung von Muster Werbetechnik — er las die Spore aus dem
+// gemeinsamen Topf. Aus einer falschen Beschreibung entsteht ein falscher
+// Vektor, und damit findet der Knoten die falschen Nachbarn.
+sage(/window\.SBKIM_DB_SUFFIX\s*=/.test(html), "index.html setzt window.SBKIM_DB_SUFFIX");
+sage(new RegExp('window\\.SBKIM_DB_SUFFIX\\s*=\\s*"' + SUFFIX + '"').test(html),
+     `der gesetzte Wert ist die eigene Schublade (${SUFFIX})`);
+// Die STELLE messen, nicht das Wort. Der Kommentar über der Zeile nennt
+// `window.SBKIM_DB_SUFFIX` ebenfalls — und der steht im Kopf. Wer mit
+// indexOf auf den bloßen Namen prüft, misst also den Kommentar und bekommt
+// „steht früh" gemeldet, während die Zeile selbst ganz unten liegt. Genau
+// daran war diese Prüfung blind, und die Gegenprobe hat es gefunden.
+const setzStelle = html.search(/<script>\s*window\.SBKIM_DB_SUFFIX\s*=/);
+sage(setzStelle > -1 && setzStelle < html.indexOf("./modules/01_storage.js"),
+     "die SETZ-ZEILE steht vor dem Speicher-Modul — sonst wirkt sie nicht");
+sage(setzStelle > -1 && setzStelle < html.indexOf("</head>"),
+     "die SETZ-ZEILE steht im Kopf, nicht irgendwo im Rumpf");
+
 // ── 5 · Die App selbst ist unberührt ───────────────────────────────────────
 sage(/<script\s+src="effects\.js"/.test(html), "die App lädt weiter effects.js");
 

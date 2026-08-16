@@ -91,6 +91,18 @@ const FAELLE = [
     bauen: () => schreib("assets/siegel-inhalt.js", sicher["assets/siegel-inhalt.js"].replace('downloadJson("workflohpage-backup-', 'downloadJson("kimboard-backup-')),
   },
   {
+    was: "die eigene Schublade wird nicht mehr früh gesetzt (geteilter Topf!)",
+    bauen: () => schreib("index.html", sicher["index.html"].replace(/<script>window\.SBKIM_DB_SUFFIX="[^"]*";<\/script>/, "")),
+  },
+  {
+    was: "die Schublade steht erst nach dem Speicher-Modul",
+    bauen: () => {
+      let h = sicher["index.html"].replace(/<script>window\.SBKIM_DB_SUFFIX="([^"]*)";<\/script>/, "");
+      h = h.replace("</body>", '<script>window.SBKIM_DB_SUFFIX="workflohpage";</script></body>');
+      schreib("index.html", h);
+    },
+  },
+  {
     was: "Wappen-Band ohne Gravur (ribbonText fehlt)",
     bauen: () => schreib("assets/schutz-init.js", sicher["assets/schutz-init.js"].replace(/ribbonText: "[^"]*",/, "")),
   },
