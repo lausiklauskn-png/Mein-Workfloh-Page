@@ -7,7 +7,7 @@
      v5  Fußzeilen-Wort auf eine kontraststarke Marken-Abstufung
    Ohne die Erhöhung liefert der Vorrat jedem Wiederbesucher weiter die alte
    Fassung — und eine neue Messung sähe unverändert aus. */
-const CACHE = 'werbetechnik-page-v8';
+const CACHE = 'werbetechnik-page-v9';
 /* three.module.min.js steht mit Absicht NICHT mehr hier (2026-08-15, dieselbe
    Entscheidung wie in family-project/sw.js).
    Seit der Hintergrund den Grafikchip prüft, wird die Bibliothek auf jedem
