@@ -8,6 +8,15 @@
    Ohne die Erhöhung liefert der Vorrat jedem Wiederbesucher weiter die alte
    Fassung — und eine neue Messung sähe unverändert aus. */
 const CACHE = 'werbetechnik-page-v9';
+
+/* ⚠ NUR EIGENE VORRAETE AUFRAEUMEN — `caches` gehoert dem URSPRUNG, nicht dem
+ * Pfad. Auf lausiklauskn-png.github.io liegen rund zwanzig Apps; ein Filter,
+ * der nur "ist nicht meiner" fragt, laesst ALLE fremden durch und loescht sie.
+ * Gemessen am 2026-09-08 an zwei echten Apps
+ * (Sage-Protokol/tests/vorrat_wirkung.mjs). Praefix ABGELESEN aus der
+ * Vorrat-Konstante, nicht geraten. Muster aus Tomys-Hub/bookledger/sw.js.
+ * Es muss BEIDES tun: fremde stehen lassen UND eigene alte weiter wegraeumen. */
+const VORRAT_PRAEFIX = "werbetechnik-page-";
 /* three.module.min.js steht mit Absicht NICHT mehr hier (2026-08-15, dieselbe
    Entscheidung wie in family-project/sw.js).
    Seit der Hintergrund den Grafikchip prüft, wird die Bibliothek auf jedem
@@ -58,7 +67,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(ks => Promise.all(ks.filter(k => k.startsWith(VORRAT_PRAEFIX) && k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
