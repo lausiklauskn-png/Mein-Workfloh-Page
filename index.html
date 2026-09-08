@@ -74,6 +74,22 @@ a{color:var(--accent)}
 ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}
 
 /* ---- Topbar ---- */
+/* ── Der Muster-Hinweis ────────────────────────────────────────────────────
+ * Diese Seite ist eine VORLAGE und steht trotzdem im Marktplatz. Wer sie
+ * dort anklickt, sieht eine Werbetechnik-Firma mit Anschrift, Telefon und
+ * Referenzen — und nichts davon gibt es. Der Hinweis stand bisher nur im
+ * Impressum, also hinter zwei Klicks; er gehört auf die Seite selbst.
+ *
+ * Er steht als ECHTES HTML im Dokument, nicht per Skript nachgetragen: ein
+ * Band, das nach dem Laden erscheint, schöbe die ganze Seite (in PWA
+ * Toolpoint hat genau das einmal CLS 0,136 gekostet).
+ *
+ * Und er ist NICHT wegklickbar. Ein Hinweis, den der erste Klick abschaltet,
+ * ist beim zweiten Besucher wieder da und beim ersten schon weg — er soll
+ * nicht nicht stören, er soll dastehen. */
+.musterband{background:var(--surface-2);border-bottom:1px solid var(--line);
+  color:var(--ink-2);font-size:.82rem;line-height:1.45;padding:8px 14px;text-align:center}
+.musterband b{color:var(--ink)}
 .topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--line);
   padding:max(10px,env(safe-area-inset-top)) 14px 10px;display:flex;align-items:center;gap:10px}
 .brand{display:flex;align-items:center;gap:12px;min-width:0;flex:1;cursor:pointer}
@@ -508,6 +524,15 @@ html[data-theme="dark"] #bg,html[data-theme="contrast"] #bg{opacity:.8}
   </div>
 </header>
 
+<!-- Klaus' Entscheidung 2026-09-08: benannter Hinweis statt echter Daten.
+     Die Vorlage soll firmenneutral bleiben; dann muss sie aber sagen, dass
+     sie eine ist. -->
+<p class="musterband" data-muster-hinweis>
+  <b>Muster-Seite.</b> Firmenname, Anschrift, Telefon, Preise und Referenzen
+  auf dieser Seite sind erfunden — hinter ihr steht kein Betrieb. Sie zeigt,
+  wie eine Werbetechnik-Website aussehen kann.
+</p>
+
 <!-- ===== Install bar ===== -->
 <div id="installBar">
   <img src="icon-192.png" alt="">
@@ -877,10 +902,10 @@ function openAnfrage(pref){openSheet('Anfrage senden',anfrageFormHTML(pref||''),
 function openLegal(which){
   const imp='<p><b>Muster Werbetechnik</b><br>[Straße Nr.]<br>[PLZ Ort]</p>'+
     '<p>Telefon: [Telefon]<br>E-Mail: info@example.de</p>'+
-    '<p style="color:var(--ink-3);font-size:.85rem">Dies ist eine neutrale Gestaltungs-Vorlage. Vollständige Angaben gemäß § 5 TMG (Firmierung, Geschäftsführung, Registergericht, HRB, USt-IdNr.) werden vor Veröffentlichung ergänzt.</p>';
+    '<p style="color:var(--ink-3);font-size:.85rem">Diese Seite ist eine neutrale Gestaltungs-Vorlage und bleibt es. Es gibt keinen Betrieb „Muster Werbetechnik"; Anschrift, Telefon und E-Mail oben sind Platzhalter. Wer die Vorlage für einen echten Betrieb übernimmt, trägt hier die vollständigen Angaben nach § 5 DDG ein (Firmierung, Vertretung, Registergericht, HRB, USt-IdNr.).</p>';
   const ds='<p>Der Schutz Ihrer Daten ist uns wichtig. Diese Anwendung läuft als installierbare Web-App und speichert keine personenbezogenen Daten auf einem Server.</p>'+
     '<p>Anfragen werden über Ihr eigenes E-Mail-Programm an info@example.de gesendet – es findet keine Datenübertragung im Hintergrund statt.</p>'+
-    '<p style="color:var(--ink-3);font-size:.85rem">Entwurf – die finale Datenschutzerklärung wird vor Veröffentlichung ergänzt.</p>';
+    '<p style="color:var(--ink-3);font-size:.85rem">Auch dieser Text ist Teil der Vorlage. Wer sie für einen echten Betrieb übernimmt, ersetzt ihn durch eine vollständige Datenschutzerklärung.</p>';
   openSheet(which==='impressum'?'Impressum':'Datenschutz',which==='impressum'?imp:ds,'<button class="btn pri block" onclick="closeSheet()">Schließen</button>');
 }
 
