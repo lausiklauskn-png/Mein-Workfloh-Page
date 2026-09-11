@@ -32,7 +32,7 @@
     endpoint: "https://lausiklauskn-png.github.io/Mein-Workfloh-Page/",
     nodeType: "hybrid",
     nodeName: "Muster Werbetechnik",
-    domainDescription: "Muster Werbetechnik — firmenneutrale Gestaltungs-Vorlage für die Website eines Werbetechnik-Betriebs, als installierbare PWA zum Kopieren und Anpassen. Zeigt Aufbau, Leistungs-Seiten und Kontaktweg eines Handwerksbetriebs: Beschriftung, Folierung, Schilder, Textil, Digitaldruck. Alle Namen und Kontaktdaten sind Platzhalter — es ist eine Vorlage, kein Betrieb. Website-Vorlage, Werbetechnik, Handwerk, Schaufenster, PWA.",
+    domainDescription: "Muster Werbetechnik — firmenneutrale Gestaltungs-Vorlage für die Website eines Werbetechnik-Betriebs, als installierbare PWA zum Kopieren und Anpassen. Zeigt Aufbau, Leistungs-Seiten und Kontaktweg eines Handwerksbetriebs: Beschriftung, Folierung, Schilder, Textil, Digitaldruck. Alle Namen und Kontaktdaten sind Platzhalter — es ist eine Vorlage, kein Betrieb. Website-Vorlage, Werbetechnik, Handwerk, Schaufenster, PWA. Diese App ist zugleich ein eigenständiger Knoten im SBKIM-Mycel: Semantisches Bidirektionales KI-Matching nach der offenen Spezifikation aus dem Sage-Protokol. Sie trägt eine eigene Ed25519-Identität, kündigt sich mit einer signierten Spore an und findet über ihren Bedeutungs-Vektor andere Knoten des Netzes — server-los, ohne Konto, der private Schlüssel bleibt im Browser. SBKIM, Mycel, Knoten, Spore, Sage-Protokol, semantisches Matching.",
     domainKeywords: ["Website-Vorlage", "Werbetechnik", "Beschriftung", "Folierung", "Schilder", "Textildruck", "Digitaldruck", "Handwerksbetrieb", "PWA", "Schaufenster-Seite"],
     stammCategories: ["Website-Vorlage", "Werbetechnik-Leistungen", "PWA-Gestaltung"],
     guestCategories: ["Spore-Erzeugung", "Backup", "Handshake"],
@@ -105,12 +105,52 @@
       "min-height:5.5em;padding:0.55rem 0.65rem;font:inherit;font-size:0.88rem;line-height:1.5;" +
       "color:#F5F5FF;background:rgba(0,0,0,0.35);border:1px solid rgba(201,169,97,0.35);border-radius:8px;";
     ta.value = WIZ.domainDescription;
+    /* ⚠ WELCHER TEXT IM FELD STEHT — und warum der VORSCHLAG DER APP gewinnt.
+       Bis zum 2026-09-11 überschrieb die gespeicherte Spore ihn hier STILL. Wer
+       neu signierte, bekam den alten Text zurück, ohne dass irgendwo etwas dazu
+       dastand. Genau diese Fassung hat Klaus in Kim Hub Company zweimal
+       beanstandet: „wolltest du nicht den neuen Text automatisch einfügen … der
+       neue Text ist da noch nicht drin." Wer „automatisch" bittet und einen Knopf
+       bekommt, hat nicht bekommen, worum er gebeten hat.
+       Der Vorschlag der App ist der GEPFLEGTE Text — er wird mit dem Depot
+       aktualisiert. Nichts geht dabei verloren: der zuletzt signierte bleibt in
+       der Spore, bis wirklich neu signiert wird, und ein Knopf holt ihn zurück.
+       Die Zeile darunter NENNT jedes Mal, welcher der beiden im Feld steht; ohne
+       sie wäre der Tausch still, und still ist hier schlimmer als falsch. */
+    var herkunft = document.createElement("p");
+    herkunft.id = "kbd-semantik-herkunft";
+    herkunft.setAttribute("data-woher", "app");
+    herkunft.style.cssText = "margin:0.4rem 0 0;font-size:0.78rem;line-height:1.45;color:rgba(245,245,255,0.62);";
+    herkunft.textContent = "Im Feld steht der Vorschlag dieser App — er wird mit der App gepflegt.";
+
+    var zurueck = document.createElement("button");
+    zurueck.type = "button";
+    zurueck.id = "kbd-semantik-eigener-text";
+    zurueck.hidden = true;
+    zurueck.textContent = "↺ Meinen zuletzt signierten Text zurückholen";
+    zurueck.style.cssText = "display:block;margin:0.4rem 0 0;padding:0.35rem 0.7rem;font:inherit;" +
+      "font-size:0.8rem;cursor:pointer;border-radius:7px;border:1px solid rgba(201,169,97,0.45);" +
+      "background:transparent;color:#F5E6B8;";
+
     try {
       if (window.SbkimSpore && window.SbkimSpore.getOwnSpore) {
         window.SbkimSpore.getOwnSpore().then(function (sp) {
-          if (sp && typeof sp.domainDescription === "string" && sp.domainDescription.trim()) {
-            ta.value = sp.domainDescription; autoGrow(ta);
-          }
+          var eigener = sp && typeof sp.domainDescription === "string" ? sp.domainDescription : "";
+          /* Nur bei ABWEICHUNG. Wer zuletzt mit genau diesem Vorschlag signiert
+             hat, braucht keinen Knopf — und einer, der immer dasteht, ist bald
+             einer, den niemand mehr liest. */
+          var abweichend = !!eigener.trim()
+            && eigener.trim() !== String(WIZ.domainDescription || "").trim();
+          if (!abweichend) return;
+          herkunft.textContent = "Im Feld steht der Vorschlag dieser App. Dein zuletzt "
+            + "signierter Text war ein anderer — er bleibt in deiner Spore, bis du neu signierst.";
+          zurueck.hidden = false;
+          zurueck.addEventListener("click", function () {
+            ta.value = eigener; autoGrow(ta);
+            herkunft.setAttribute("data-woher", "spore");
+            herkunft.textContent = "Im Feld steht jetzt dein zuletzt signierter Text.";
+            zurueck.hidden = true;
+          });
         }).catch(function () {});
       }
     } catch (e) {}
@@ -131,7 +171,9 @@
     out.id = "kbd-semantik-out";
     out.style.cssText = "margin:0.6rem 0 0;font-family:monospace;font-size:0.78rem;line-height:1.5;color:#6ee7d3;word-break:break-word;";
     btn.addEventListener("click", function () { reSignWithDescription(ta, btn, out); });
-    wrap.appendChild(label); wrap.appendChild(ta); wrap.appendChild(hint); wrap.appendChild(btn); wrap.appendChild(out);
+    wrap.appendChild(label); wrap.appendChild(ta);
+    wrap.appendChild(herkunft); wrap.appendChild(zurueck);
+    wrap.appendChild(hint); wrap.appendChild(btn); wrap.appendChild(out);
     setTimeout(function () { autoGrow(ta); }, 0);
     return wrap;
   }
