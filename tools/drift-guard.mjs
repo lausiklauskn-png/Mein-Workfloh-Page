@@ -32,7 +32,7 @@ const ERWARTET = [
   { datei: "modules/16_siegel.js",           sha: "3e17f6474fc7f96fd7056a92a272805052c7b0dca13ca236f53b0f5b4df5eb85" },
   { datei: "modules/17_floating_widget.js",  sha: "dd3e0d7fb5963904bab9257b1353344944ecd8675ca3c78897264c8a621aff82" },
   { datei: "modules/23_rendezvous.js",       sha: "3caa0bb1fbe7bf5293c90b6a59a74cccf8600bff45095a892b1f048244c61fcf" },
-  { datei: "modules/23_rendezvous_ui.js",    sha: "b496bc86b5b23ce07e155b5f03615bf4e21cb208670a1c4d78b497f214ea7530" },
+  { datei: "modules/23_rendezvous_ui.js",    sha: "709c4364026ed2c3647aa613c05296b18a2a761e382b18b86074493916e28b2e" },
   { datei: "modules/noble-secp256k1.js",     sha: "8f3879ca422c4fdfe7ca0361688636fa7cc550a59bd94d512ed6ec79aa3d55d1" },
 ];
 
