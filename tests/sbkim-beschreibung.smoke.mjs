@@ -47,12 +47,19 @@ function finde(endung) {
 }
 
 const siegel = finde(["siegel-inhalt.js"])[0];
+/* ⚠ SEIT A18 (2026-09-14) LIEGT DER WIZARD-CODE IN EINER EIGENEN DATEI. Die
+   Waechter darunter messen den ABLAUF, nicht die Identitaet — sie sind deshalb
+   MITGEZOGEN worden statt geloescht. Wer einen Waechter beim Umzug wegwirft,
+   nimmt seine Zusicherung mit. Vertrag: Sage-Protokol/docs/INTERFACES.md 11.9. */
+const wizard = finde(["sbkim-andock-wizard.js"])[0];
 const glue = finde(["rendezvous-init.js", "sbkim-init.js"])[0];
 ok("das Siegel und der app-eigene Klebstoff liegen beide da", !!siegel && !!glue,
    `siegel=${siegel} glue=${glue}`);
+ok("… und die Kanon-Datei mit dem Wizard liegt daneben", !!wizard, `wizard=${wizard}`);
 if (!siegel || !glue) { console.log(`\n${gruen} grün, ${rot} ROT`); process.exit(1); }
 
 const sTxt = fs.readFileSync(siegel, "utf8");
+const wTxt = wizard ? fs.readFileSync(wizard, "utf8") : "";
 const gTxt = fs.readFileSync(glue, "utf8");
 
 /* Der Text wird aus dem Siegel gelesen, nicht abgeschrieben — eine zweite
@@ -86,19 +93,19 @@ ok("der app-eigene Klebstoff trägt WORTGLEICH denselben Text", gTxt.includes(te
    steht danach ein zweites Mal im Rückhol-Knopf, und ein freier Fund dort
    bliebe grün, wenn die Vorbelegung fehlte (so ist es in Kim Hub Company
    durchgerutscht). */
-const von = sTxt.indexOf("ta.value = WIZ.domainDescription;");
-const bis = sTxt.indexOf("ta.addEventListener(\"input\"");
-const block = von > 0 && bis > von ? sTxt.slice(von, bis) : "";
+const von = wTxt.indexOf("ta.value = c.domainDescription");
+const bis = wTxt.indexOf("ta.addEventListener(\"input\"");
+const block = von > 0 && bis > von ? wTxt.slice(von, bis) : "";
 ok("der Vorschlag der App wird NICHT mehr still von der Spore überschrieben",
    !!block && !/ta\.value = sp\.domainDescription/.test(block));
 ok("… und eine Zeile nennt, welcher der beiden Texte im Feld steht",
-   /data-woher/.test(sTxt) && /semantik-herkunft/.test(sTxt));
+   /data-woher/.test(wTxt) && /semantik-herkunft/.test(wTxt));
 ok("… und ein Knopf holt den zuletzt signierten Text zurück",
-   /semantik-eigener-text/.test(sTxt) && /abweichend/.test(sTxt));
+   /semantik-eigener-text/.test(wTxt) && /abweichend/.test(wTxt));
 /* Die Gegenrichtung: der Knopf steht nur bei ABWEICHUNG da. Einer, der immer
    dasteht, ist bald einer, den niemand mehr liest. */
 ok("… und er steht nur da, wenn der signierte Text wirklich abweicht",
-   /zurueck\.hidden = true;/.test(sTxt) && /if \(!abweichend\) return;/.test(sTxt));
+   /zurueck\.hidden = true;/.test(wTxt) && /if \(!abweichend\) return;/.test(wTxt));
 
 console.log(`\n${gruen} grün, ${rot} ROT`);
 process.exit(rot ? 1 : 0);
