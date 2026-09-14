@@ -32,7 +32,7 @@
     domain: "Vorlage/Werbetechnik-Website/PWA",
     endpoint: "https://lausiklauskn-png.github.io/Mein-Workfloh-Page/",
     nodeType: "hybrid",
-    domainDescription: "Muster Werbetechnik — firmenneutrale Gestaltungs-Vorlage für die Website eines Werbetechnik-Betriebs, als installierbare PWA zum Kopieren und Anpassen. Zeigt Aufbau, Leistungs-Seiten und Kontaktweg eines Handwerksbetriebs: Beschriftung, Folierung, Schilder, Textil, Digitaldruck. Alle Namen und Kontaktdaten sind Platzhalter — es ist eine Vorlage, kein Betrieb. Website-Vorlage, Werbetechnik, Handwerk, Schaufenster, PWA.",
+    domainDescription: "Muster Werbetechnik — firmenneutrale Gestaltungs-Vorlage für die Website eines Werbetechnik-Betriebs, als installierbare PWA zum Kopieren und Anpassen. Zeigt Aufbau, Leistungs-Seiten und Kontaktweg eines Handwerksbetriebs: Beschriftung, Folierung, Schilder, Textil, Digitaldruck. Alle Namen und Kontaktdaten sind Platzhalter — es ist eine Vorlage, kein Betrieb. Website-Vorlage, Werbetechnik, Handwerk, Schaufenster, PWA. Diese App ist zugleich ein eigenständiger Knoten im SBKIM-Mycel: Semantisches Bidirektionales KI-Matching nach der offenen Spezifikation aus dem Sage-Protokol. Sie trägt eine eigene Ed25519-Identität, kündigt sich mit einer signierten Spore an und findet über ihren Bedeutungs-Vektor andere Knoten des Netzes — server-los, ohne Konto, der private Schlüssel bleibt im Browser. SBKIM, Mycel, Knoten, Spore, Sage-Protokol, semantisches Matching.",
     domainKeywords: ["Website-Vorlage", "Werbetechnik", "Beschriftung", "Folierung", "Schilder", "Textildruck", "Digitaldruck", "Handwerksbetrieb", "PWA", "Schaufenster-Seite"],
   };
 
