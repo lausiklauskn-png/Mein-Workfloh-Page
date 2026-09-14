@@ -7,7 +7,7 @@
      v5  Fußzeilen-Wort auf eine kontraststarke Marken-Abstufung
    Ohne die Erhöhung liefert der Vorrat jedem Wiederbesucher weiter die alte
    Fassung — und eine neue Messung sähe unverändert aus. */
-const CACHE = 'werbetechnik-page-v14';
+const CACHE = 'werbetechnik-page-v15';
 
 /* ⚠ NUR EIGENE VORRAETE AUFRAEUMEN — `caches` gehoert dem URSPRUNG, nicht dem
  * Pfad. Auf lausiklauskn-png.github.io liegen rund zwanzig Apps; ein Filter,
@@ -54,6 +54,7 @@ const ASSETS = [
   'assets/schutz-init.js',
   'assets/nostr-listen-init.js',
   'assets/siegel-inhalt.js',
+  'assets/sbkim-andock-wizard.js',
 ];
 
 self.addEventListener('install', e => {

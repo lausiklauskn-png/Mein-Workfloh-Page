@@ -32,9 +32,14 @@ function finde(namen) {
   return t;
 }
 const SIEGEL = finde(["siegel-inhalt.js"])[0];
+/* ⚠ VIERTE DATEI SEIT A18: der Wizard-Code. Drei Faelle unten zielen dorthin.
+   Wer sie nicht mitzieht, bekommt einen TOTEN ANKER — der Fall meldet sich als
+   „nicht gefangen", obwohl der Waechter tadellos ist. */
+const WIZARD = finde(["sbkim-andock-wizard.js"])[0];
 const GLUE = finde(["rendezvous-init.js", "sbkim-init.js"])[0];
 const PROBE = finde(["sbkim-beschreibung.smoke.mjs", "sbkim-beschreibung.mjs"])[0];
-const sicher = { [SIEGEL]: readFileSync(SIEGEL, "utf8"), [GLUE]: readFileSync(GLUE, "utf8") };
+const sicher = { [SIEGEL]: readFileSync(SIEGEL, "utf8"), [GLUE]: readFileSync(GLUE, "utf8"),
+                 [WIZARD]: readFileSync(WIZARD, "utf8") };
 
 function roteZeilen() {
   try { execFileSync(process.execPath, [PROBE], { cwd: WURZEL, stdio: "pipe" }); return []; }
@@ -77,23 +82,27 @@ const FAELLE = [
     bauen: () => writeFileSync(GLUE, sicher[GLUE].replace("Diese App ist zugleich", "Diese Anwendung ist zugleich"), "utf8") },
   { was: "die gespeicherte Spore überschreibt den Vorschlag der App wieder still",
     trifft: /still von der Spore überschrieben/,
-    bauen: () => writeFileSync(SIEGEL, sicher[SIEGEL].replace(
-      'ta.value = WIZ.domainDescription;\n    /* ⚠ WELCHER TEXT',
-      'ta.value = WIZ.domainDescription;\n    try { window.SbkimSpore.getOwnSpore().then(function (s) { ta.value = sp.domainDescription; }); } catch (e) {}\n    /* ⚠ WELCHER TEXT'), "utf8") },
+    bauen: () => writeFileSync(WIZARD, sicher[WIZARD].replace(
+      /* ⚠ DER ANKER IST BEIM A18-UMZUG MITGEWANDERT. Er hiess vorher
+         `WIZ.domainDescription`; im Kanon heisst die Konfiguration `c`.
+         Ein Fall mit totem Anker meldet sich als „nicht gefangen", obwohl
+         der Waechter tadellos ist — und man sucht am falschen Ende. */
+      'ta.value = c.domainDescription || "";\n',
+      'ta.value = c.domainDescription || "";\n    try { window.SbkimSpore.getOwnSpore().then(function (s) { ta.value = sp.domainDescription; }); } catch (e) {}\n    /* ⚠ WELCHER TEXT'), "utf8") },
   { was: "die Zeile, die die Herkunft nennt, fällt weg",
     trifft: /welcher der beiden Texte im Feld steht/,
-    bauen: () => writeFileSync(SIEGEL, sicher[SIEGEL].replaceAll("data-woher", "data-x"), "utf8") },
+    bauen: () => writeFileSync(WIZARD, sicher[WIZARD].replaceAll("data-woher", "data-x"), "utf8") },
   { was: "der Rückhol-Knopf steht IMMER da, nicht nur bei Abweichung",
     trifft: /nur da, wenn der signierte Text wirklich abweicht/,
-    bauen: () => writeFileSync(SIEGEL, sicher[SIEGEL].replace("if (!abweichend) return;", "if (false) return;"), "utf8") },
+    bauen: () => writeFileSync(WIZARD, sicher[WIZARD].replace("if (!abweichend) return;", "if (false) return;"), "utf8") },
 ];
 
 let gefangen = 0, durch = 0, falsch = 0, tot = 0;
 try {
   for (const f of FAELLE) {
-    for (const d of [SIEGEL, GLUE]) writeFileSync(d, sicher[d], "utf8");
+    for (const d of [SIEGEL, GLUE, WIZARD]) writeFileSync(d, sicher[d], "utf8");
     f.bauen();
-    const geaendert = [SIEGEL, GLUE].some((d) => readFileSync(d, "utf8") !== sicher[d]);
+    const geaendert = [SIEGEL, GLUE, WIZARD].some((d) => readFileSync(d, "utf8") !== sicher[d]);
     if (!geaendert) { tot++; console.log("  ⚠ ANKER NICHT GEFUNDEN:", f.was); continue; }
     const zeilen = roteZeilen();
     if (!zeilen.length) { durch++; console.log("  ✗ NICHT GEFANGEN:", f.was); }
@@ -102,7 +111,7 @@ try {
     } else { gefangen++; console.log("  ✓ gefangen:", f.was); }
   }
 } finally {
-  for (const d of [SIEGEL, GLUE]) writeFileSync(d, sicher[d], "utf8");
+  for (const d of [SIEGEL, GLUE, WIZARD]) writeFileSync(d, sicher[d], "utf8");
 }
 console.log(`\n${gefangen} gefangen · ${durch} durchgerutscht · ${falsch} aus dem falschen Grund · ${tot} tote Anker`);
 process.exit(durch || falsch || tot ? 1 : 0);

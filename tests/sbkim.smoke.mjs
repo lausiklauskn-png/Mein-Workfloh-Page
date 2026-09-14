@@ -54,6 +54,12 @@ const storage = lies("assets/storage-init.js");
 const rdv = lies("assets/rendezvous-init.js");
 const schutz = lies("assets/schutz-init.js");
 const siegel = lies("assets/siegel-inhalt.js");
+/* ⚠ SEIT A18 (2026-09-14) STEHT DER WIZARD IN EINER EIGENEN, NETZWEIT
+   BYTE-GLEICHEN DATEI. `siegel-inhalt.js` traegt nur noch die Identitaet dieses
+   Knotens. Die Waechter unten sind MITGEZOGEN, nicht geloescht — sie messen
+   denselben Ablauf, nur an seinem neuen Wohnort.
+   Vertrag: Sage-Protokol/docs/INTERFACES.md 11.9. */
+const wizard = lies("assets/sbkim-andock-wizard.js");
 
 sage(new RegExp(`DB_SUFFIX = "${SUFFIX}"`).test(storage), `storage-init nennt die eigene Schublade (${SUFFIX})`);
 sage(new RegExp(`DB_SUFFIX = "${SUFFIX}"`).test(rdv), "rendezvous-init nennt dieselbe Schublade");
@@ -61,7 +67,11 @@ sage(rdv.includes(`nodeName: "${NAME}"`), "rendezvous-init trägt den eigenen Kn
 sage(siegel.includes(`nodeName: "${NAME}"`), "siegel-inhalt trägt denselben Knoten-Namen");
 sage(/ribbonText: "[A-ZÄÖÜ ]+"/.test(schutz), "schutz-init graviert einen Namen ins Wappen-Band");
 sage(schutz.includes("Mein-Workfloh-Page"), "schutz-init zeigt auf das eigene Repo");
-sage(siegel.includes(`downloadJson("${SUFFIX}-backup-`), "Sicherungsdatei heißt nach dieser App");
+/* ⚠ Der Name der Sicherungsdatei wird seit A18 nicht mehr eingetippt,
+   sondern aus der Konfiguration gelesen — gemessen wird deshalb der WERT
+   in siegel-inhalt.js und dass der Kanon ihn wirklich benutzt. */
+sage(siegel.includes(`backupPrefix: "${SUFFIX}-backup"`), "Sicherungsdatei heißt nach dieser App");
+sage(/c\.backupPrefix/.test(wizard), "… und der Kanon liest ihn aus der Konfiguration");
 
 // Keine Vorlagen-Reste — der stille Fehler.
 for (const [n, s] of Object.entries({ storage, rdv, schutz, siegel })) {
@@ -69,11 +79,15 @@ for (const [n, s] of Object.entries({ storage, rdv, schutz, siegel })) {
 }
 
 // ── 3 · Der Andock-Wizard ist vollständig ───────────────────────────────────
-sage(/wechsl|switchWizardIdentity/i.test(siegel), "Siegel-Modal trägt den Identitäts-Wechsler");
-sage(/listIdentities/.test(siegel), "Wizard kann vorhandene Identitäten lesen");
-sage(/generateOwnSpore|signieren/i.test(siegel), "Wizard kann eine Spore signieren");
-sage(/importBackup/.test(siegel), "Wizard kann eine Sicherung zurückholen");
-sage(/wiz-idsel/.test(siegel), "Wizard nutzt ein eigenes Element-Präfix");
+sage(/wechsl|switchWizardIdentity/i.test(wizard), "Siegel-Modal trägt den Identitäts-Wechsler");
+sage(/listIdentities/.test(wizard), "Wizard kann vorhandene Identitäten lesen");
+sage(/generateOwnSpore|signieren/i.test(wizard), "Wizard kann eine Spore signieren");
+sage(/importBackup/.test(wizard), "Wizard kann eine Sicherung zurückholen");
+/* ⚠ Der Name log schon vorher: gemessen wurde nie ein EIGENES Praefix,
+   sondern dass der Wechsler sein Element hat — `wiz-idsel` passt auch auf
+   `sbwiz-idsel`. Seit A18 ist das Praefix netzweit EINS, und der Name
+   sagt jetzt, was der Waechter tut. */
+sage(/wiz-idsel/.test(wizard), "der Identitäts-Wechsler hat sein Element");
 
 // ── 4 · Reihenfolge + späte Ladung in index.html ────────────────────────────
 const html = lies("index.html");
@@ -94,6 +108,7 @@ vorher("./assets/storage-init.js", "./modules/02_spore.js", "storage-init steht 
 vorher("./modules/17_floating_widget.js", "./modules/15_membran.js", "Modul 17 steht vor der Membran");
 vorher("./modules/17_floating_widget.js", "./modules/16_siegel.js", "Modul 17 steht vor dem Siegel");
 vorher("./modules/16_siegel.js", "./assets/siegel-inhalt.js", "Modul 16 steht vor siegel-inhalt");
+vorher("./assets/siegel-inhalt.js", "./assets/sbkim-andock-wizard.js", "die Konfiguration steht vor dem Kanon-Wizard");
 vorher("./modules/23_rendezvous.js", "./modules/23_rendezvous_ui.js", "Modul 23 steht vor seiner Oberfläche");
 
 sage(/requestIdleCallback/.test(html), "die Kette wird in der Leerlaufpause geholt");

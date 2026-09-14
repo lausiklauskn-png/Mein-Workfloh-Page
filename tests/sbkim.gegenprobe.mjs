@@ -33,6 +33,7 @@ const AKTEN = [
   "assets/rendezvous-init.js",
   "assets/schutz-init.js",
   "assets/siegel-inhalt.js",
+  "assets/sbkim-andock-wizard.js",
   "modules/23_rendezvous_ui.js",
   "sw.js",
 ];
@@ -85,11 +86,11 @@ const FAELLE = [
   },
   {
     was: "Wizard ohne Identitäts-Wechsler",
-    bauen: () => schreib("assets/siegel-inhalt.js", sicher["assets/siegel-inhalt.js"].replace(/switchWizardIdentity/g, "xxNichtsxx").replace(/[Ww]echsl\w*/g, "xx").replace(/wiz-idsel/g, "wiz-xxx")),
+    bauen: () => schreib("assets/sbkim-andock-wizard.js", sicher["assets/sbkim-andock-wizard.js"].replace(/switchWizardIdentity/g, "xxNichtsxx").replace(/[Ww]echsl\w*/g, "xx").replace(/wiz-idsel/g, "wiz-xxx")),
   },
   {
     was: "Sicherungsdatei heißt noch nach der Vorlage",
-    bauen: () => schreib("assets/siegel-inhalt.js", sicher["assets/siegel-inhalt.js"].replace('downloadJson("workflohpage-backup-', 'downloadJson("kimboard-backup-')),
+    bauen: () => schreib("assets/siegel-inhalt.js", sicher["assets/siegel-inhalt.js"].replace('backupPrefix: "workflohpage-backup"', 'backupPrefix: "kimboard-backup"')),
   },
   {
     was: "die eigene Schublade wird nicht mehr früh gesetzt (geteilter Topf!)",
