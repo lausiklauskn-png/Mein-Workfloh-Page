@@ -64,8 +64,10 @@
  *   ensureIdentity(opts?) -> Promise<{ ok, created, nodeId?, reason? }>  (Modus A)
  *   cleanupSharedOrigin() -> Promise<{ dbDeleted, swUnregistered, cachesDeleted, notes }>
  *   repairAndReconnect(opts?) -> Promise<{ ok, cleaned, created, nodeId?, reason?, reloadHint }>  (Modus B)
- *   announce(opts?) -> Promise<{ ok, nodeId?, reason? }>
+ *   announce(opts?) -> Promise<{ ok, nodeId?, reason?, bestaetigung? }>
  *       Lauscht (listenNostr) + heftet die lebende Visitenkarte ans Brett.
+ *       bestaetigung = { stand: "ja"|"nein"|"unbekannt", relais:[{relay,ergebnis,grund}] }
+ *       aus den OK-Antworten der Relais (Modul 05b, 2026-10-14). "nein" ⇒ ok:false.
  *       Setzt eine vorhandene Identität voraus.
  *   connectAndAnnounce(opts?) -> Promise<{ ok, created, nodeId?, reason? }>
  *       Wie announce, erzeugt aber die Identität, falls noch keine da ist —
@@ -99,7 +101,9 @@
  *              listenMs, nodeName, hasRelay, hasAnastomose, hasSpore, hasMatch,
  *              hasStorage, hasCreateIdentity,
  *              answering, answeredCount, hasPrepareCorpus, answerCorpusEnsured,
- *              queryTag, queryKind, queryResKind, queryMaxPerMin }
+ *              queryTag, queryKind, queryResKind, queryMaxPerMin,
+ *              frageVerworfen, fragenBestaetigt, fragenUnbestaetigt,
+ *              queryUnsignedMaxPerMin }  (S1, 2026-10-15)
  *
  * Self-check: emits a console.info line on script load. Siehe
  * docs/components/23_rendezvous.md + INTERFACES.md §1 Modul 23.
@@ -132,6 +136,7 @@
     anastomose: null,    // null → global.SbkimAnastomose
     spore: null,         // null → global.SbkimSpore
     match: null,         // null → global.SbkimMatch (optional, nur Anzeige-Score)
+    embedding: null,     // null → global.SbkimEmbedding (S2, optional, nur mit geladenem Modell)
     storage: null,       // null → global.SbkimStorage (Identitäts-Hygiene)
     dbSuffix: null,      // eigene Schublade `sbkim_<dbSuffix>`
     createIdentity: null,// app-eigener async-Callback (Spore-Erzeugung)
@@ -139,6 +144,233 @@
     freshSec: RDV_FRESH_SEC_DEFAULT,
     listenMs: RDV_LISTEN_MS_DEFAULT,
   };
+
+  // ---- Eigenes Netz (Schritt 1, 2026-10-13, INTERFACES §Modul 23 „EIGENES NETZ") ----
+  // Ohne Einstellung bleibt ALLES wie vorher: Raum RDV_TAG, Fragen RDV_QUERY_TAG,
+  // Klartext-JSON. Mit Netz-Code: Marken und Schlüssel aus dem Code (Vorbild
+  // Kim-sync raumOeffnen), Karten/Fragen/Antworten AES-GCM-verschlüsselt.
+  // RIEGEL: ein ungültiger Code fällt NIE still ins öffentliche Netz zurück.
+  var NETZ_RAUM_SALZ = "sbkim-netz-raum-v1:";
+  var NETZ_SCHLUESSEL_SALZ = "sbkim-netz-schluessel-v1";
+  var NETZ_RUNDEN = 150000;
+  var NETZ_CODE_MIN = 12;
+  var NETZ_CODE_ZEICHEN = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  var NETZ_SPEICHER_PRAEFIX = "sbkim_netz_";
+  var net = { lage: "oeffentlich", rdvTag: null, qryTag: null, key: null, reason: null, pending: null };
+
+  function netRaum() { return net.rdvTag || RDV_TAG; }
+  function netFragen() { return net.qryTag || RDV_QUERY_TAG; }
+
+  function netCodeNorm(code) {
+    return String(code == null ? "" : code).replace(/[\s-]+/g, "").toUpperCase();
+  }
+  function netSubtle() {
+    var c = global.crypto || (typeof crypto !== "undefined" ? crypto : null);
+    return (c && c.subtle) ? c : null;
+  }
+  function netHex(buf) {
+    var u = new Uint8Array(buf), s = "";
+    for (var i = 0; i < u.length; i++) s += u[i].toString(16).padStart(2, "0");
+    return s;
+  }
+  function netZuB64(u) { var s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }
+  function netAusB64(b) { var s = atob(b), u = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+
+  function newNetCode() {
+    var c = netSubtle();
+    var roh = new Uint8Array(20);
+    if (c && c.getRandomValues) c.getRandomValues(roh); else throw new Error("Kein Zufall verfügbar (WebCrypto fehlt).");
+    var out = "";
+    for (var i = 0; i < 20; i++) {
+      if (i && i % 4 === 0) out += "-";
+      out += NETZ_CODE_ZEICHEN[roh[i] % NETZ_CODE_ZEICHEN.length];
+    }
+    return out;
+  }
+
+  async function netAbleiten(code) {
+    var n = netCodeNorm(code);
+    if (n.length < NETZ_CODE_MIN || !/^[A-Z0-9]+$/.test(n)) {
+      return { ok: false, reason: "Netz-Code ungültig (mindestens " + NETZ_CODE_MIN + " Zeichen, nur Buchstaben und Ziffern)." };
+    }
+    var c = netSubtle();
+    if (!c) return { ok: false, reason: "Kein WebCrypto — Netz-Code kann nicht gelesen werden." };
+    var enc = new TextEncoder();
+    var h = netHex(await c.subtle.digest("SHA-256", enc.encode(NETZ_RAUM_SALZ + n)));
+    var roh = await c.subtle.importKey("raw", enc.encode(n), "PBKDF2", false, ["deriveKey"]);
+    var key = await c.subtle.deriveKey(
+      { name: "PBKDF2", salt: enc.encode(NETZ_SCHLUESSEL_SALZ), iterations: NETZ_RUNDEN, hash: "SHA-256" },
+      roh, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+    return { ok: true, rdvTag: "sbkim-netz-" + h.slice(0, 32), qryTag: "sbkim-netzq-" + h.slice(32, 64), key: key };
+  }
+
+  // Setzt das Netz. null/{} → öffentlich. {code} → eigen. {roomTag} → nur Raum.
+  // Ein laufender Antwort-Lauscher hört auf der ALTEN Marke — er wird beendet;
+  // die App schaltet das Antwortrecht im neuen Netz wieder ein.
+  function setNetwork(opts) {
+    opts = (opts && typeof opts === "object") ? opts : {};
+    if (answerUnsub) { try { answerUnsub(); } catch (_e) {} answerUnsub = null; }
+    var code = (typeof opts.code === "string") ? opts.code : null;
+    var raum = (typeof opts.roomTag === "string") ? opts.roomTag : null;
+    if (code !== null && code.trim() !== "") {
+      net = { lage: "wird-abgeleitet", rdvTag: null, qryTag: null, key: null, reason: null, pending: null };
+      var mein = net;
+      mein.pending = netAbleiten(code).then(function (r) {
+        if (net !== mein) return { ok: false, network: net.lage, reason: "Netz wurde inzwischen gewechselt." };
+        if (!r.ok) { mein.lage = "ungueltig"; mein.reason = r.reason; return { ok: false, network: "ungueltig", reason: r.reason }; }
+        mein.lage = "eigen"; mein.rdvTag = r.rdvTag; mein.qryTag = r.qryTag; mein.key = r.key;
+        return { ok: true, network: "eigen" };
+      }, function (e) {
+        mein.lage = "ungueltig"; mein.reason = "Netz-Code konnte nicht abgeleitet werden: " + (e && e.message ? e.message : e);
+        return { ok: false, network: "ungueltig", reason: mein.reason };
+      });
+      return mein.pending;
+    }
+    if (raum !== null && raum !== "") {
+      if (!/^[a-z0-9][a-z0-9-]{2,63}$/.test(raum)) {
+        net = { lage: "ungueltig", rdvTag: null, qryTag: null, key: null, pending: null,
+          reason: "Raum-Marke ungültig (3–64 Zeichen, a–z, 0–9, Bindestrich)." };
+        return Promise.resolve({ ok: false, network: "ungueltig", reason: net.reason });
+      }
+      net = { lage: "raum", rdvTag: raum, qryTag: raum + "-qry", key: null, reason: null, pending: null };
+      return Promise.resolve({ ok: true, network: "raum" });
+    }
+    net = { lage: "oeffentlich", rdvTag: null, qryTag: null, key: null, reason: null, pending: null };
+    return Promise.resolve({ ok: true, network: "oeffentlich" });
+  }
+
+  // Vor jeder Netz-Aktion: Ableitung abwarten; ungültig → nichts senden.
+  async function netBereit() {
+    if (net.pending) { try { await net.pending; } catch (_e) {} }
+    if (net.lage === "ungueltig" || net.lage === "wird-abgeleitet") {
+      return { ok: false, reason: net.reason || "Netz-Einstellung nicht bereit." };
+    }
+    return { ok: true };
+  }
+
+  // Inhalt hinaus: öffentlich Klartext-JSON (unverändert), eigen AES-GCM-Umschlag.
+  async function netPacke(obj, tag) {
+    var klar = JSON.stringify(obj);
+    if (!net.key) return klar;
+    var c = netSubtle();
+    var iv = c.getRandomValues(new Uint8Array(12));
+    var ct = new Uint8Array(await c.subtle.encrypt(
+      { name: "AES-GCM", iv: iv, additionalData: new TextEncoder().encode(tag) },
+      net.key, new TextEncoder().encode(klar)));
+    return JSON.stringify({ v: 1, iv: netZuB64(iv), ct: netZuB64(ct) });
+  }
+  // Inhalt herein: ruft handle(obj) — öffentlich synchron wie bisher, eigen nach
+  // dem Entschlüsseln. Was nicht passt, wird still verworfen. `warten` sammelt
+  // die Versprechen, damit ein Sammelfenster sie vor dem Auswerten abwartet.
+  function netEmpfange(ev, tag, handle, warten) {
+    if (!ev || typeof ev.content !== "string") return;
+    if (!net.key) {
+      var o;
+      try { o = JSON.parse(ev.content); } catch (_e) { return; }
+      handle(o);
+      return;
+    }
+    var key = net.key;
+    var p = (async function () {
+      var u;
+      try { u = JSON.parse(ev.content); } catch (_e) { return; }
+      if (!u || u.v !== 1 || typeof u.iv !== "string" || typeof u.ct !== "string") return;
+      try {
+        var klar = await netSubtle().subtle.decrypt(
+          { name: "AES-GCM", iv: netAusB64(u.iv), additionalData: new TextEncoder().encode(tag) },
+          key, netAusB64(u.ct));
+        handle(JSON.parse(new TextDecoder().decode(klar)));
+      } catch (_e) { /* falscher Code / fremder Umschlag → still verwerfen */ }
+    })();
+    if (warten) warten.push(p);
+  }
+
+  // ---- Netz-Einstellung speichern (Entscheidung 2026-10-13, INTERFACES) ----
+  function checkNetSetting(s) {
+    if (!s || typeof s !== "object") return { ok: false, reason: "Keine Netz-Einstellung." };
+    if (typeof s.relay !== "string" || !/^wss:\/\/[A-Za-z0-9.-]+(:[0-9]{1,5})?(\/[^\s]*)?$/.test(s.relay) || s.relay.length > 200) {
+      return { ok: false, reason: "Relais-Adresse ungültig (nur wss://…)." };
+    }
+    var n = netCodeNorm(s.code);
+    if (n.length < NETZ_CODE_MIN || !/^[A-Z0-9]+$/.test(n)) {
+      return { ok: false, reason: "Netz-Code ungültig (mindestens " + NETZ_CODE_MIN + " Zeichen, nur Buchstaben und Ziffern)." };
+    }
+    var name = (typeof s.name === "string") ? s.name.trim().slice(0, 60) : "";
+    return { ok: true, setting: { v: 1, name: name || "Eigenes Netz", relay: s.relay, code: String(s.code).trim(), auto: s.auto !== false } };
+  }
+  function netStore(store) {
+    if (store && typeof store.getItem === "function") return store;
+    try { return global.localStorage || null; } catch (_e) { return null; }
+  }
+  function netSchluessel() {
+    return cfg.dbSuffix ? NETZ_SPEICHER_PRAEFIX + cfg.dbSuffix : null;
+  }
+  function loadNetwork(store) {
+    var st = netStore(store), k = netSchluessel();
+    if (!st || !k) return null;
+    var roh; try { roh = st.getItem(k); } catch (_e) { return null; }
+    if (!roh) return null;
+    var s; try { s = JSON.parse(roh); } catch (_e) { return null; }
+    var r = checkNetSetting(s);
+    return r.ok ? r.setting : null;
+  }
+  // Wie loadNetwork, sagt aber AUCH, dass etwas Ungültiges gespeichert ist.
+  // loadNetwork gibt dann null zurück — und null hieße für einen Aufrufer
+  // „öffentlich". Genau das darf eine kaputte Einstellung nie werden (Riegel).
+  function readNetwork(store) {
+    var st = netStore(store), k = netSchluessel();
+    if (!st || !k) return { present: false };
+    var roh; try { roh = st.getItem(k); } catch (_e) { return { present: false }; }
+    if (!roh) return { present: false };
+    var s; try { s = JSON.parse(roh); } catch (_e) {
+      return { present: true, ok: false, value: {}, reason: "Gespeicherte Netz-Einstellung ist nicht lesbar." };
+    }
+    var r = checkNetSetting(s);
+    return r.ok ? { present: true, ok: true, setting: r.setting }
+                : { present: true, ok: false, value: (s && typeof s === "object") ? s : {}, reason: r.reason };
+  }
+  function saveNetwork(setting, store) {
+    var k = netSchluessel();
+    if (!k) return { ok: false, reason: "Ohne dbSuffix wird nicht gespeichert (geteilte Adresse)." };
+    var r = checkNetSetting(setting);
+    if (!r.ok) return r;
+    var st = netStore(store);
+    if (!st) return { ok: false, reason: "Kein Speicher verfügbar." };
+    try { st.setItem(k, JSON.stringify(r.setting)); } catch (e) { return { ok: false, reason: "Speichern fehlgeschlagen: " + (e && e.message ? e.message : e) }; }
+    return { ok: true, setting: r.setting };
+  }
+  function clearNetwork(store) {
+    var st = netStore(store), k = netSchluessel();
+    if (st && k) { try { st.removeItem(k); } catch (_e) {} }
+    return { ok: true };
+  }
+  // Wendet eine Einstellung an: 05b-Relais UND Code. null → öffentliches Netz.
+  async function applyNetwork(setting) {
+    var relay = resolveRelay();
+    if (setting == null) {
+      var rr = (relay && typeof relay.configure === "function") ? relay.configure({ reset: true }) : null;
+      var r0 = await setNetwork(null);
+      return { ok: r0.ok, network: r0.network, relays: rr && rr.relays };
+    }
+    var chk = checkNetSetting(setting);
+    if (!chk.ok) {
+      // Riegel: nicht still öffentlich weitermachen.
+      net = { lage: "ungueltig", rdvTag: null, qryTag: null, key: null, pending: null, reason: chk.reason };
+      return { ok: false, network: "ungueltig", reason: chk.reason };
+    }
+    if (!relay || typeof relay.configure !== "function") {
+      net = { lage: "ungueltig", rdvTag: null, qryTag: null, key: null, pending: null,
+        reason: "Relais-Client kann die Adresse nicht setzen (Modul 05b fehlt)." };
+      return { ok: false, network: "ungueltig", reason: net.reason };
+    }
+    var rc = relay.configure({ relays: [chk.setting.relay] });
+    if (rc && rc.ok === false) {
+      net = { lage: "ungueltig", rdvTag: null, qryTag: null, key: null, pending: null, reason: rc.reason };
+      return { ok: false, network: "ungueltig", reason: rc.reason };
+    }
+    var r1 = await setNetwork({ code: chk.setting.code });
+    return { ok: r1.ok, network: r1.network, relays: rc && rc.relays, reason: r1.reason };
+  }
 
   // ---- Resolver (Default aus den Globals, Override aus der Konfig) ----
   function resolveRelay() {
@@ -178,7 +410,89 @@
     return (s && typeof s.init === "function") ? s : null;
   }
 
+  // Modul 03 (Embedding) — nur für S2 „Vektor gegen Text nachrechnen".
+  // Gelesen wird NUR ein bereits geladenes Modell (isReady): der Raum lädt
+  // nie selbst ~118 MB nach. Fehlt es → Karte „nicht-geprueft", nie still grün.
+  function resolveEmbedding() {
+    var e = cfg.embedding || global.SbkimEmbedding;
+    return (e && typeof e.embedPassage === "function" && typeof e.isReady === "function") ? e : null;
+  }
+
   function nowSec() { return Math.floor(Date.now() / 1000); }
+
+  // ---- S2: Vektor gegen Text nachrechnen (2026-10-15, INTERFACES §23) ----
+  // Der angesagte domainVector ist signiert, aber nicht an den Text gebunden:
+  // ein Knoten konnte einen fremden Vektor kopieren (Befund 2026-10-14, N2 b/c).
+  // Hier rechnet der EMPFÄNGER aus der Selbstbeschreibung nach. Reine Anzeige:
+  // gatet nichts, nimmt nur den Match-Vorrang (Klaus 2026-10-15: Schwelle 0.99,
+  // embeddingSource "content" → nicht nachprüfbar, kein Abzug).
+  var RDV_MEANING_MIN = 0.99;
+  var RDV_MEANING_MODEL = "Xenova/multilingual-e5-small";
+
+  function cosine(a, b) {
+    if (!a || !b || a.length !== b.length || !a.length) return null;
+    var dot = 0, na = 0, nb = 0;
+    for (var i = 0; i < a.length; i++) { dot += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; }
+    if (!na || !nb) return null;
+    var c = dot / Math.sqrt(na * nb);
+    return isFinite(c) ? c : null;
+  }
+
+  async function checkMeaning(spore) {
+    function out(status, score, snippets, reason) {
+      return { status: status, score: score, snippets: snippets, reason: reason };
+    }
+    var emb = resolveEmbedding();
+    if (!emb) return out("nicht-geprueft", null, null, "Modul 03 fehlt");
+    var ready = false;
+    try { ready = emb.isReady() === true; } catch (_e) { ready = false; }
+    if (!ready) return out("nicht-geprueft", null, null, "Sprachmodell nicht geladen");
+    if (!spore || typeof spore !== "object") return out("nicht-geprueft", null, null, "keine Spore");
+    var vec = toVec(spore.domainVector);
+    if (!vec || !vec.length) return out("nicht-geprueft", null, null, "kein Bedeutungs-Vektor");
+    if (typeof spore.embeddingModel === "string" && spore.embeddingModel && spore.embeddingModel !== RDV_MEANING_MODEL) {
+      return out("nicht-geprueft", null, null, "anderes Modell: " + String(spore.embeddingModel).slice(0, 80));
+    }
+    try {
+      // Satz-Schnipsel: jeder Vektor gegen seinen EIGENEN Text. Gekürzte Sätze
+      // („…") sind nicht verlässlich nachzurechnen und werden übersprungen.
+      var snippets = null;
+      var sv = Array.isArray(spore.snippetVectors) ? spore.snippetVectors : [];
+      var pruefbar = sv.filter(function (x) {
+        return x && typeof x.text === "string" && x.text.trim() && !/…$/.test(x.text.trim()) && toVec(x.vec);
+      });
+      if (pruefbar.length) {
+        snippets = "passen";
+        for (var i = 0; i < pruefbar.length; i++) {
+          var c = cosine(await emb.embedPassage(pruefbar[i].text), toVec(pruefbar[i].vec));
+          if (c === null || c < RDV_MEANING_MIN) { snippets = "passen-nicht"; break; }
+        }
+      }
+      var src = spore.embeddingSource;
+      var desc = typeof spore.domainDescription === "string" ? spore.domainDescription.trim() : "";
+      var kw = Array.isArray(spore.domainKeywords) ? spore.domainKeywords.join(", ") : "";
+      var best = null;
+      if (desc) {
+        var fassungen = [desc];
+        if (kw) fassungen.push(desc + ". " + kw);   // Andock-Wizard, Erst-Signatur
+        if (kw) fassungen.push(desc + " " + kw);    // tools/embed_helper.html (ältere Sporen)
+        for (var f = 0; f < fassungen.length; f++) {
+          var cf = cosine(await emb.embedPassage(fassungen[f]), vec);
+          if (cf !== null && (best === null || cf > best)) best = cf;
+        }
+      }
+      if (snippets === "passen-nicht") return out("passt-nicht", best, snippets, "Satz-Schnipsel passt nicht zu seinem Text");
+      if (src === "content") return out("nicht-nachpruefbar", best, snippets, "Bedeutung aus Inhalten, nicht nachprüfbar");
+      if (best !== null && best >= RDV_MEANING_MIN) return out("passt", best, snippets, "Bedeutung passt zur Beschreibung");
+      if (src === "description") {
+        return out("passt-nicht", best, snippets, desc ? "Bedeutung passt nicht zur Beschreibung" : "Beschreibung fehlt");
+      }
+      return out("nicht-nachpruefbar", best, snippets, "Herkunft des Vektors nicht angegeben");
+    } catch (e) {
+      return out("nicht-geprueft", null, null, "Rechenfehler: " + String(e && e.message ? e.message : e).slice(0, 120));
+    }
+  }
+  function meaningFails(c) { return !!(c && c.meaning && c.meaning.status === "passt-nicht"); }
 
   // Domänen-Vektor (number[] aus der Spore, oder Float32Array) → Float32Array.
   // null bei fehlender/ungültiger Eingabe (relatedness() validiert den Rest).
@@ -221,7 +535,7 @@
         }
       }
       copy.relatedness = rel;
-      copy.isRelated = isRel;
+      copy.isRelated = meaningFails(c) ? false : isRel;   // S2: kein Vorrang
       return copy;
     });
   }
@@ -269,12 +583,210 @@
       return enriched.map(function (c) { delete c._idx; return c; });
     }
     enriched.sort(function (a, b) {
+      var ma = meaningFails(a), mb = meaningFails(b);   // S2: „passt nicht" ans Ende
+      if (ma !== mb) return ma ? 1 : -1;
       var fa = (typeof a.queryFit === "number") ? a.queryFit : -Infinity;
       var fb = (typeof b.queryFit === "number") ? b.queryFit : -Infinity;
       if (fb !== fa) return fb - fa;      // beste Passung zuerst
       return a._idx - b._idx;             // sonst Eingabe-Reihenfolge (stabil)
     });
     return enriched.map(function (c) { delete c._idx; return c; });
+  }
+
+  // ---- S5 „Bürgen" — Teil 1 (2026-10-15, docs/PLAN_MYCEL_SCHICHTEN.md) ----
+  // Ein bekannter Knoten unterschreibt „diese Kennung kenne ich". Eine
+  // Bürgschaft zählt beim Leser NUR, wenn er dem Bürgen schon traut (Anker
+  // oder eigener Kontakt), höchstens RDV_VOUCH_CHAIN_MAX Schritte weit.
+  // REINE ANZEIGE: gatet nichts, unverbürgte Karten bleiben sichtbar.
+  var RDV_VOUCH_KIND = "sbkim-vouch";
+  var RDV_REVOKE_KIND = "sbkim-vouch-revoke";
+  var RDV_VOUCH_CHAIN_MAX = 2;                 // Klaus 2026-10-15: „2 Schritte"
+  var RDV_VOUCH_TTL_SEC = 365 * 24 * 3600;     // Klaus 2026-10-15: „1 Jahr"
+  var RDV_VOUCH_SKEW_SEC = 600;                // Uhren-Spiel nach vorn
+  var RDV_VOUCH_PER_CARD_MAX = 8;
+  var RDV_REVOKE_PER_CARD_MAX = 32;
+  var RDV_VOUCH_SEEN_MAX = 400;                // Zettel je discover()-Lauf
+  // Anker: Klaus' Kennung (Klaus 2026-10-15: „Klaus + eigene Kontakte").
+  // LEER, bis Klaus nennt, mit welcher Identität er bürgt.
+  var RDV_VOUCH_ANCHORS = [];
+  var BUERGEN_SPEICHER_PRAEFIX = "sbkim_buergen_";
+  var vouchCfg = { anchors: [], flagged: [] };
+
+  function idListe(x) {
+    return (Array.isArray(x) ? x : []).filter(function (s) { return typeof s === "string" && s.length > 0 && s.length <= 128; });
+  }
+  function buergenSchluessel() { return cfg.dbSuffix ? BUERGEN_SPEICHER_PRAEFIX + cfg.dbSuffix : null; }
+  function buergenLesen(store) {
+    var st = netStore(store), k = buergenSchluessel(), leer = { v: 1, contacts: [], carried: [] };
+    if (!st || !k) return leer;
+    var roh; try { roh = st.getItem(k); } catch (_e) { return leer; }
+    if (!roh) return leer;
+    var o; try { o = JSON.parse(roh); } catch (_e) { return leer; }
+    if (!o || typeof o !== "object") return leer;
+    return {
+      v: 1,
+      contacts: (Array.isArray(o.contacts) ? o.contacts : []).filter(function (c) {
+        return c && typeof c.nodeId === "string" && c.nodeId.length > 0 && c.nodeId.length <= 128;
+      }).map(function (c) { return { nodeId: c.nodeId, name: (typeof c.name === "string") ? c.name.slice(0, 60) : "" }; }),
+      carried: (Array.isArray(o.carried) ? o.carried : []).filter(function (z) { return z && typeof z === "object"; }),
+    };
+  }
+  function buergenSchreiben(o, store) {
+    var st = netStore(store), k = buergenSchluessel();
+    if (!k) return { ok: false, reason: "Ohne dbSuffix wird nicht gespeichert (geteilte Adresse)." };
+    if (!st) return { ok: false, reason: "Kein Speicher verfügbar." };
+    try { st.setItem(k, JSON.stringify(o)); } catch (e) { return { ok: false, reason: "Speichern fehlgeschlagen: " + (e && e.message ? e.message : e) }; }
+    return { ok: true };
+  }
+  function loadVouchContacts(store) { return buergenLesen(store).contacts; }
+  function saveVouchContacts(list, store) {
+    var o = buergenLesen(store);
+    o.contacts = (Array.isArray(list) ? list : []).filter(function (c) {
+      return c && typeof c.nodeId === "string" && c.nodeId.length > 0 && c.nodeId.length <= 128;
+    }).map(function (c) { return { nodeId: c.nodeId, name: (typeof c.name === "string") ? c.name.slice(0, 60) : "" }; });
+    var r = buergenSchreiben(o, store);
+    return r.ok ? { ok: true, contacts: o.contacts } : r;
+  }
+
+  // Prüft EINEN Zettel (Bürgschaft oder Widerruf) für sich.
+  // → "gueltig" | "falsch" | "nicht-pruefbar" (Modul 02 fehlt)
+  async function vouchPruefen(z, jetzt) {
+    if (!z || typeof z !== "object") return "falsch";
+    var istV = z.kind === RDV_VOUCH_KIND, istR = z.kind === RDV_REVOKE_KIND;
+    if (!istV && !istR) return "falsch";
+    if (z.v !== 1 || typeof z.voucher !== "string" || typeof z.subject !== "string" || !z.voucher || !z.subject) return "falsch";
+    if (z.voucher === z.subject) return "falsch";
+    if (typeof z.ts !== "number" || !isFinite(z.ts) || z.ts > jetzt + RDV_VOUCH_SKEW_SEC) return "falsch";
+    if (istV) {
+      if (typeof z.exp !== "number" || !isFinite(z.exp)) return "falsch";
+      if (!(z.exp > z.ts) || z.exp - z.ts > RDV_VOUCH_TTL_SEC) return "falsch";   // nie still gekürzt
+      if (z.exp <= jetzt) return "falsch";                                         // abgelaufen
+    }
+    if (typeof z.sig !== "string" || !z.spore || typeof z.spore !== "object") return "falsch";
+    if (z.spore.id !== z.voucher) return "falsch";
+    var v = resolveVerifier();
+    if (!v || typeof v.verifyDetached !== "function") return "nicht-pruefbar";
+    try {
+      var vr = await v.verifyForeignSpore(z.spore);
+      if (!(vr === true || (vr && vr.valid === true))) return "falsch";
+      return (await v.verifyDetached(antwortOhneSig(z), z.sig, z.spore.publicKey)) ? "gueltig" : "falsch";
+    } catch (_e) { return "falsch"; }
+  }
+
+  // Aus gesammelten Zetteln die gültigen Kanten voucher→subject bauen.
+  async function vouchKanten(zettel, jetzt) {
+    var vouches = [], revokes = [], nichtPruefbar = false, gesehen = Object.create(null);
+    var liste = (Array.isArray(zettel) ? zettel : []).slice(0, RDV_VOUCH_SEEN_MAX);
+    for (var i = 0; i < liste.length; i++) {
+      var z = liste[i];
+      if (!z || typeof z !== "object" || typeof z.sig !== "string") continue;
+      if (gesehen[z.sig]) continue;          // derselbe Zettel aus mehreren Karten
+      gesehen[z.sig] = true;
+      var st = await vouchPruefen(z, jetzt);
+      if (st === "nicht-pruefbar") { nichtPruefbar = true; continue; }
+      if (st !== "gueltig") continue;
+      if (z.kind === RDV_VOUCH_KIND) vouches.push(z); else revokes.push(z);
+    }
+    var kanten = vouches.filter(function (b) {
+      return !revokes.some(function (w) { return w.voucher === b.voucher && w.subject === b.subject && w.ts >= b.ts; });
+    });
+    return { kanten: kanten, nichtPruefbar: nichtPruefbar };
+  }
+
+  // vouchTrust(cards, opts) → neue Liste, je Karte `vouch` (Eingabe nicht mutiert).
+  // opts.vouches: weitere Zettel (z. B. aus allen Karten-Ereignissen) ·
+  // opts.anchors / opts.contacts / opts.flagged: Kennungen (ergänzen cfg).
+  async function vouchTrust(cards, opts) {
+    var o = opts || {};
+    var list = Array.isArray(cards) ? cards : [];
+    var jetzt = nowSec();
+    var anker = idListe(RDV_VOUCH_ANCHORS).concat(idListe(vouchCfg.anchors), idListe(o.anchors));
+    var kontakte = loadVouchContacts().map(function (c) { return c.nodeId; }).concat(idListe(o.contacts));
+    var aufgefallen = idListe(vouchCfg.flagged).concat(idListe(o.flagged));
+    var zettel = [];
+    list.forEach(function (c) {
+      var cv = (c && Array.isArray(c.vouches)) ? c.vouches : [];
+      var cr = (c && Array.isArray(c.revocations)) ? c.revocations : [];
+      zettel = zettel.concat(cv.slice(0, RDV_VOUCH_PER_CARD_MAX), cr.slice(0, RDV_REVOKE_PER_CARD_MAX));
+    });
+    zettel = zettel.concat(Array.isArray(o.vouches) ? o.vouches : [], buergenLesen().carried);
+    var k = await vouchKanten(zettel, jetzt);
+    // „Der Bürge haftet": wer für eine aufgefallene Kennung bürgt, zählt nicht mehr.
+    var haftet = Object.create(null);
+    k.kanten.forEach(function (b) { if (aufgefallen.indexOf(b.subject) !== -1) haftet[b.voucher] = true; });
+    var kanten = k.kanten.filter(function (b) { return !haftet[b.voucher]; });
+    // Breitensuche von den Wurzeln, höchstens RDV_VOUCH_CHAIN_MAX Schritte.
+    var weg = Object.create(null);   // nodeId → Kette (Wurzel zuerst)
+    var front = [];
+    anker.concat(kontakte).forEach(function (id) { if (!weg[id]) { weg[id] = []; front.push(id); } });
+    for (var schritt = 1; schritt <= RDV_VOUCH_CHAIN_MAX; schritt++) {
+      var neu = [];
+      front.forEach(function (von) {
+        kanten.forEach(function (b) {
+          if (b.voucher !== von || weg[b.subject]) return;
+          weg[b.subject] = weg[von].concat([von]);
+          neu.push(b.subject);
+        });
+      });
+      front = neu;
+    }
+    var grund = k.nichtPruefbar ? "Modul 02 fehlt — Bürgschaften nicht prüfbar" : null;
+    return list.map(function (c) {
+      var copy = {};
+      for (var key in c) { if (Object.prototype.hasOwnProperty.call(c, key)) copy[key] = c[key]; }
+      var id = c && c.nodeId;
+      var v;
+      if (id && anker.indexOf(id) !== -1) v = { status: "anker", by: [], depth: 0, reason: null };
+      else if (id && kontakte.indexOf(id) !== -1) v = { status: "kontakt", by: [], depth: 0, reason: null };
+      // Ein Aufgefallener steht nie in `weg`: wer für ihn bürgt, haftet, und
+      // dessen Kanten sind oben schon weg (Gegenprobe 2026-10-15: eine eigene
+      // Prüfung hier änderte nichts — toter Anker, darum entfernt).
+      else if (id && weg[id]) v = { status: "verbuergt", by: weg[id].slice(), depth: weg[id].length, reason: null };
+      else v = { status: "unverbuergt", by: [], depth: null, reason: aufgefallen.indexOf(id) !== -1 ? "aufgefallen" : grund };
+      copy.vouch = v;
+      return copy;
+    });
+  }
+
+  // Ausstellen (signiert mit der eigenen Identität, Modul 02 signDetached).
+  async function vouchAusstellen(art, subjectId, opts) {
+    var s = resolveSpore();
+    if (!s || typeof s.signDetached !== "function") return { ok: false, reason: "Modul 02 ohne signDetached — nicht unterschreibbar." };
+    if (typeof subjectId !== "string" || !subjectId || subjectId.length > 128) return { ok: false, reason: "Keine gültige Kennung." };
+    var own; try { own = await s.getOwnSpore(); } catch (_e) { own = null; }
+    if (!own || !own.id) return { ok: false, reason: "Noch keine Identität." };
+    if (own.id === subjectId) return { ok: false, reason: "Für sich selbst bürgt man nicht." };
+    var ts = nowSec();
+    var z = { kind: art, v: 1, voucher: own.id, subject: subjectId, ts: ts, spore: own };
+    if (art === RDV_VOUCH_KIND) {
+      var tage = (opts && typeof opts.days === "number" && isFinite(opts.days) && opts.days > 0) ? opts.days : 365;
+      z.exp = ts + Math.min(RDV_VOUCH_TTL_SEC, Math.floor(tage * 24 * 3600));
+    }
+    try { z.sig = await s.signDetached(antwortOhneSig(z)); }
+    catch (e) { return { ok: false, reason: "Unterschrift fehlgeschlagen: " + (e && e.message ? e.message : e) }; }
+    return { ok: true, zettel: z };
+  }
+  function createVouch(subjectId, opts) { return vouchAusstellen(RDV_VOUCH_KIND, subjectId, opts); }
+  function createRevocation(subjectId) { return vouchAusstellen(RDV_REVOKE_KIND, subjectId, null); }
+
+  // Eine erhaltene Bürgschaft (oder einen eigenen Widerruf) in den eigenen
+  // Vorrat legen; doAnnounce trägt ihn in der Karte. Nur gültige Zettel.
+  async function addCarried(z, store) {
+    var st = await vouchPruefen(z, nowSec());
+    if (st !== "gueltig") return { ok: false, reason: st === "nicht-pruefbar" ? "Modul 02 fehlt — nicht prüfbar." : "Zettel ungültig." };
+    var o = buergenLesen(store);
+    if (o.carried.some(function (x) { return x.sig === z.sig; })) return { ok: true, carried: o.carried.length };
+    o.carried.push(z);
+    var r = buergenSchreiben(o, store);
+    return r.ok ? { ok: true, carried: o.carried.length } : r;
+  }
+  function cardCarried() {
+    var c = buergenLesen().carried, jetzt = nowSec();
+    var v = c.filter(function (z) { return z.kind === RDV_VOUCH_KIND && typeof z.exp === "number" && z.exp > jetzt; })
+      .sort(function (a, b) { return b.ts - a.ts; }).slice(0, RDV_VOUCH_PER_CARD_MAX);
+    var r = c.filter(function (z) { return z.kind === RDV_REVOKE_KIND; })
+      .sort(function (a, b) { return b.ts - a.ts; }).slice(0, RDV_REVOKE_PER_CARD_MAX);
+    return { vouches: v, revocations: r };
   }
 
   // VERKEHR-Lampe (Modul 17 / Status-Widget) ehrlich setzen: aktiv, solange
@@ -502,7 +1014,7 @@
     return {
       ok: res.ok, cleaned: cleaned, created: res.created,
       protectedIdentity: protectShared, migratedIdentity: migrated, identityNote: identityNote,
-      nodeId: res.nodeId, reason: res.reason, reloadHint: RELOAD_HINT,
+      nodeId: res.nodeId, reason: res.reason, reloadHint: RELOAD_HINT, bestaetigung: res.bestaetigung,
     };
   }
 
@@ -514,6 +1026,7 @@
     if (opts.anastomose !== undefined) cfg.anastomose = opts.anastomose;
     if (opts.spore !== undefined) cfg.spore = opts.spore;
     if (opts.match !== undefined) cfg.match = opts.match;
+    if (opts.embedding !== undefined) cfg.embedding = opts.embedding;
     if (opts.storage !== undefined) cfg.storage = opts.storage;
     if (typeof opts.dbSuffix === "string" && opts.dbSuffix.length > 0) cfg.dbSuffix = opts.dbSuffix;
     if (typeof opts.createIdentity === "function") cfg.createIdentity = opts.createIdentity;
@@ -527,10 +1040,16 @@
     if (typeof opts.listenMs === "number" && isFinite(opts.listenMs) && opts.listenMs > 0) {
       cfg.listenMs = Math.floor(opts.listenMs);
     }
+    if (opts.vouchAnchors !== undefined) vouchCfg.anchors = idListe(opts.vouchAnchors);   // S5
+    if (opts.vouchFlagged !== undefined) vouchCfg.flagged = idListe(opts.vouchFlagged);   // S5
+    if (opts.netCode !== undefined || opts.roomTag !== undefined) {
+      setNetwork({ code: opts.netCode, roomTag: opts.roomTag });
+    }
   }
 
   async function init(opts) {
     applyOpts(opts);
+    if (net.pending) { try { await net.pending; } catch (_e) {} }
     // init() baut KEINE Verbindung auf (Empfangsmodus). Modus A (sanft, lokal,
     // idempotent) nur wenn ausdrücklich verlangt — das ist KEINE Netz-Aktion.
     if (opts && opts.ensureIdentity) {
@@ -543,11 +1062,27 @@
 
   // ---- Kern: lauschen + lebende Visitenkarte ans Brett heften ----
   // Geteilt von announce() und connectAndAnnounce().
-  async function doAnnounce(own) {
+  // Relais-Antwort deuten (INTERFACES §Modul 05b „Relais-Antwort", 2026-10-14).
+  // "ja" = mindestens ein Relais meldete OK true · "nein" = alle antworteten,
+  // alle lehnten ab · "unbekannt" = alles andere (auch ein Client ohne antwort).
+  function bestaetigungAus(a) {
+    if (!a || !Array.isArray(a.relais)) return { stand: "unbekannt", relais: [] };
+    var liste = a.relais.map(function (r) {
+      return { relay: String(r && r.relay || ""), ergebnis: String(r && r.ergebnis || "unbekannt"),
+        grund: String(r && r.grund || "").slice(0, 200) };
+    });
+    var ja = liste.some(function (r) { return r.ergebnis === "angenommen"; });
+    var alleNein = liste.length > 0 && liste.every(function (r) { return r.ergebnis === "abgelehnt"; });
+    return { stand: ja ? "ja" : (alleNein ? "nein" : "unbekannt"), relais: liste };
+  }
+
+  async function doAnnounce(own, ohneWarten) {
     var relay = resolveRelay();
     if (!relay) {
       return { ok: false, reason: "Kein Nostr-Relais-Client (Modul 05b) verfügbar." };
     }
+    var nb = await netBereit();
+    if (!nb.ok) return { ok: false, reason: nb.reason };
     // Erst lauschen, damit der Knoten erreichbar ist, wenn jemand andockt.
     var ana = resolveAnastomose();
     if (ana && typeof ana.listenNostr === "function") {
@@ -560,18 +1095,33 @@
       spore: own,
       ts: nowSec(),
     };
+    var mit = cardCarried();                       // S5: Bürgschaften / Widerrufe mittragen
+    if (mit.vouches.length) card.vouches = mit.vouches;
+    if (mit.revocations.length) card.revocations = mit.revocations;
+    var pr;
     try {
-      await relay.publish({
+      pr = await relay.publish({
         kind: NOSTR_KIND,
         created_at: nowSec(),
-        tags: [["t", RDV_TAG]],
-        content: JSON.stringify(card),
+        tags: [["t", netRaum()]],
+        content: await netPacke(card, netRaum()),
       });
     } catch (e) {
       return { ok: false, reason: "Anmelden fehlgeschlagen: " + (e && e.message ? e.message : e) };
     }
     signalListening(true);
-    return { ok: true, nodeId: own.id };
+    var antwort = null;
+    if (!ohneWarten && pr && pr.antwort && typeof pr.antwort.then === "function") {
+      try { antwort = await pr.antwort; } catch (_e) { antwort = null; }
+    }
+    var best = bestaetigungAus(antwort);
+    if (best.stand === "nein") {
+      return { ok: false, nodeId: own.id, bestaetigung: best,
+        reason: "Kein Relais hat die Anmeldung angenommen: " + best.relais.map(function (r) {
+          return r.relay + " — " + (r.grund || "ohne Grund");
+        }).join("; ") };
+    }
+    return { ok: true, nodeId: own.id, bestaetigung: best };
   }
 
   // ---- announce(): nur (neu) anmelden — setzt Identität voraus ----
@@ -599,7 +1149,7 @@
     var own = await getOwnLiveSpore();
     if (own && own.id) {
       var rA = await doAnnounce(own);
-      return { ok: rA.ok, created: false, nodeId: rA.nodeId, reason: rA.reason };
+      return { ok: rA.ok, created: false, nodeId: rA.nodeId, reason: rA.reason, bestaetigung: rA.bestaetigung };
     }
     // Keine Identität — über den app-eigenen Callback erzeugen (opts oder cfg).
     var makeId = (typeof opts.createIdentity === "function") ? opts.createIdentity : cfg.createIdentity;
@@ -620,7 +1170,7 @@
       return { ok: false, created: false, reason: "Identität nach createIdentity nicht lesbar." };
     }
     var rB = await doAnnounce(fresh);
-    return { ok: rB.ok, created: true, nodeId: rB.nodeId, reason: rB.reason };
+    return { ok: rB.ok, created: true, nodeId: rB.nodeId, reason: rB.reason, bestaetigung: rB.bestaetigung };
   }
 
   // ---- discover(): lebende Visitenkarten lesen ----
@@ -630,6 +1180,10 @@
     if (!relay) {
       return { ok: false, cards: [], reason: "Kein Nostr-Relais-Client (Modul 05b) verfügbar." };
     }
+    var nbD = await netBereit();
+    if (!nbD.ok) return { ok: false, cards: [], reason: nbD.reason };
+    var raumTag = netRaum();
+    var wartenD = [];
     var listenMs = (typeof opts.listenMs === "number" && isFinite(opts.listenMs) && opts.listenMs > 0)
       ? Math.floor(opts.listenMs) : cfg.listenMs;
     var freshSec = (typeof opts.freshSec === "number" && isFinite(opts.freshSec) && opts.freshSec > 0)
@@ -643,14 +1197,16 @@
     var perSender = Object.create(null);  // nostr-pubkey -> Anzahl Identitäten
     var cardCount = 0;                    // Karten gesamt in diesem Durchlauf
     var rejected = 0;                     // wegen Echtheit/Bindung verworfen
+    var vouchZettel = [];                 // S5: aus ALLEN Karten-Ereignissen, nicht nur der neuesten
     var unsub = null;
     try {
       unsub = relay.subscribe(
-        { kinds: [NOSTR_KIND], "#t": [RDV_TAG], since: sinceSec },
+        { kinds: [NOSTR_KIND], "#t": [raumTag], since: sinceSec },
         function onEvent(ev) {
-          if (!ev || typeof ev.content !== "string") return;
-          var card;
-          try { card = JSON.parse(ev.content); } catch (e) { return; }
+          netEmpfange(ev, raumTag, function (card) { karteNehmen(ev, card); }, wartenD);
+        },
+      );
+      function karteNehmen(ev, card) {
           if (!card || card.kind !== RDV_PRESENCE_KIND || !card.nodeId || !card.spore) return;
           // Mengenschutz (Stufe 2b): der Raum darf nicht beliebig groß werden,
           // und ein einzelner Nostr-Absender nicht beliebig viele Identitäten
@@ -665,10 +1221,13 @@
           }
           // Die Karte kann keine fremde Spore unter eigenem Namen tragen.
           if (card.spore.id !== card.nodeId) { rejected++; return; }
+          if (vouchZettel.length < RDV_VOUCH_SEEN_MAX) {
+            if (Array.isArray(card.vouches)) vouchZettel = vouchZettel.concat(card.vouches.slice(0, RDV_VOUCH_PER_CARD_MAX));
+            if (Array.isArray(card.revocations)) vouchZettel = vouchZettel.concat(card.revocations.slice(0, RDV_REVOKE_PER_CARD_MAX));
+          }
           var ts = (typeof card.ts === "number" ? card.ts : (typeof ev.created_at === "number" ? ev.created_at : 0));
           if (!byId[card.nodeId] || ts > byId[card.nodeId].ts) byId[card.nodeId] = { card: card, ts: ts };
-        },
-      );
+      }
     } catch (e) {
       return { ok: false, cards: [], reason: "Raum-Lesen fehlgeschlagen: " + (e && e.message ? e.message : e) };
     }
@@ -676,6 +1235,7 @@
     return await new Promise(function (resolve) {
       setTimeout(async function () {
         if (unsub) { try { unsub(); } catch (e) {} }
+        if (wartenD.length) { try { await Promise.all(wartenD); } catch (_e) {} }
         var now = nowSec();
         var cards = Object.keys(byId)
           .filter(function (id) { return id !== ownId; })
@@ -691,6 +1251,41 @@
             };
           })
           .sort(function (a, b) { return b.ts - a.ts; });
+        // ECHTHEIT (Stufe 2b): Ed25519-Prüfung je Karte über Modul 02. Erst hier,
+        // weil verifyForeignSpore async ist und der Empfangs-Callback es nicht
+        // abwarten kann. Ungültige Karten fallen raus — niemand kann sich mehr
+        // unter fremder Identität ins Brett hängen.
+        // ⚠ Modul 02 liefert {valid, reason}, NIE `false` (INTERFACES §2 Modul 02).
+        //   Bis 2026-10-14 stand hier `!== false` — damit galt JEDE Spore als echt,
+        //   auch eine mit kaputter Signatur (Befund 2026-10-14, N2). Gelesen wird
+        //   jetzt `.valid === true`; ein Prüfer mit nacktem Boolean (alte Proben,
+        //   Forker) wird weiter verstanden.
+        // ⚠ Die Prüfung steht VOR dem Zusammenfassen nach Namen: sonst verdrängt
+        //   eine unechte Karte mit neuerer Zeit die echte gleichen Namens und fällt
+        //   danach selbst heraus — beide wären weg.
+        var verifier = resolveVerifier();
+        var cardsVerified = !!verifier;
+        if (verifier) {
+          var geprueft = [];
+          for (var vi = 0; vi < cards.length; vi++) {
+            var okSpore = false;
+            try {
+              var vr = await verifier.verifyForeignSpore(cards[vi].spore);
+              okSpore = (vr === true) || !!(vr && typeof vr === "object" && vr.valid === true);
+            } catch (e) { okSpore = false; }   // wirft bei ungültiger Spore → unecht
+            if (okSpore) geprueft.push(cards[vi]); else rejected++;
+          }
+          cards = geprueft;
+        }
+        // S2: Bedeutung nachrechnen — nur geprüfte Karten, nur mit geladenem
+        // Modell (sonst „nicht-geprueft"). Vor relatednessForCards, damit
+        // „passt nicht" dort keinen Vorrang bekommt.
+        if (opts.checkMeaning !== false) {
+          for (var mi = 0; mi < cards.length; mi++) {
+            try { cards[mi].meaning = await checkMeaning(cards[mi].spore); }
+            catch (_e) { cards[mi].meaning = { status: "nicht-geprueft", score: null, snippets: null, reason: "Fehler" }; }
+          }
+        }
         // Adress-Wand-Härtung (Klaus 2026-07-10): ein Knoten kann durch
         // wiederholtes „Aufräumen & neu anmelden" mehrere Alt-Identitäten
         // hinterlassen — deren Präsenz-Kärtchen leben ~30 min weiter und
@@ -698,30 +1293,23 @@
         // NEUESTE Karte zeigen (Liste ist bereits ts-absteigend sortiert). So
         // trifft „❓ Fragen" immer die frischeste, lauschende ID; die toten
         // Alt-Kärtchen verschwinden aus Raum + Karte. Opt-out: collapseByName:false.
+        // ⚠ Der Name ist NICHT geprüft (er steht außerhalb der Spore). Eine echt
+        //   signierte fremde Identität kann denselben Namen tragen. Die gezeigte
+        //   Karte zählt deshalb mit, wie viele andere Kennungen gleichen Namens
+        //   ausgeblendet wurden (`gleicherName`) — die Anzeige nennt es.
         if (opts.collapseByName !== false) {
           var seenName = Object.create(null);
           cards = cards.filter(function (c) {
             var key = (c.nodeName || "").toLowerCase();
             if (!key) return true;
-            if (seenName[key]) return false;
-            seenName[key] = true; return true;
+            if (seenName[key]) { seenName[key].gleicherName = (seenName[key].gleicherName || 0) + 1; return false; }
+            seenName[key] = c; return true;
           });
         }
-        // ECHTHEIT (Stufe 2b): Ed25519-Prüfung je Karte über Modul 02. Erst hier,
-        // weil verifyForeignSpore async ist und der Empfangs-Callback es nicht
-        // abwarten kann. Ungültige Karten fallen raus — niemand kann sich mehr
-        // unter fremder Identität ins Brett hängen.
-        var verifier = resolveVerifier();
-        var cardsVerified = !!verifier;
-        if (verifier) {
-          var geprueft = [];
-          for (var vi = 0; vi < cards.length; vi++) {
-            var okSpore = false;
-            try { okSpore = await verifier.verifyForeignSpore(cards[vi].spore) !== false; }
-            catch (e) { okSpore = false; }   // wirft bei ungültiger Spore → unecht
-            if (okSpore) geprueft.push(cards[vi]); else rejected++;
-          }
-          cards = geprueft;
+        // S5: Bürgschaften prüfen — reine Anzeige, Karten bleiben alle sichtbar.
+        if (opts.vouchTrust !== false) {
+          try { cards = await vouchTrust(cards, { vouches: vouchZettel }); }
+          catch (_e) { /* fail-soft: Karten ohne vouch */ }
         }
         // Reine Anzeige-Anreicherung: zentrierter Verwandtschafts-Score je Karte
         // (gatet nichts; Handshake bleibt 0.80-Riegel). Fail-soft ohne Modul 04.
@@ -779,6 +1367,7 @@
   var RDV_QUERY_KIND = "sbkim-query";
   var RDV_QUERY_RES_KIND = "sbkim-query-res";
   var RDV_QUERY_MAX_PER_MIN = 6;     // Antwort-Rate-Limit (Vorgriff Modul 11)
+  var RDV_QUERY_UNSIGNED_MAX_PER_MIN = 2; // S1: davon höchstens so viele für unsignierte Fragen (Klaus 2026-10-15)
   var RDV_QUERY_TEXT_MAX = 300;      // Frage-Text hart gekappt (untrusted input)
   var RDV_QUERY_K_MAX = 5;           // maximal 5 Treffer je Antwort
   var RDV_ASK_TIMEOUT_MS = 60000; // 15 s war zu knapp: der Antworter lädt beim ersten Mal sein ~30-MB-Modell
@@ -789,6 +1378,69 @@
   // Fenster nach (fetchAnswers). Empfangsmodus-treu: nutzer-ausgelöst beim
   // Öffnen, KEIN Dauer-Ticker. Reale Grenze = Aufbewahrungsdauer des Relais.
   var RDV_ANSWER_LOOKBACK_SEC = 1800; // 30 min zurück (Frage/Antwort nachholen)
+  // ---- Antworten an den Antworter binden (Bau 23.R, 2026-10-14) ----
+  // Befund docs/sessions/archiv/2026-10-14_angriffsflaeche_mycel.md (N1): die
+  // Antwort-Zettel waren unsigniert, `fromNodeId` nur eine Behauptung. Wer den
+  // öffentlichen Frage-Tag mithörte, antwortete im Namen des gefragten Knotens,
+  // schneller als dieser, und überschrieb in fetchAnswers mit selbst gesetzter Zeit.
+  // Jetzt: der Antworter legt seine Spore bei und unterschreibt den Zettel
+  // (Modul 02 signDetached). Der Frager prüft Spore, Bindung an fromNodeId,
+  // Unterschrift und dass fromNodeId der GEFRAGTE Knoten ist.
+  //   bestaetigt   → genommen, schlägt jede unbestätigte Antwort
+  //   unbestaetigt → ohne Unterschrift (alte Fassung, oder Modul 02 ohne Sign-Pfad);
+  //                  wird nur genommen, wenn keine bestätigte kommt, und trägt
+  //                  bestaetigt:false — die Oberfläche sagt es, der KI-Richter bekommt sie nicht
+  //   falsch       → Unterschrift/Spore/Bindung passt nicht, oder ein anderer als der
+  //                  gefragte Knoten antwortet → verworfen
+  var RDV_LABEL_MAX = 200;              // Treffer-Titel hart gekappt (untrusted input)
+  var RDV_UNBESTAETIGT_WARTE_MS = 3000; // so lange wartet askNode nach einer unbestätigten
+                                        // Antwort noch auf eine bestätigte
+  // ---- S1 „Fragen unterschreiben" (2026-10-15, docs/PLAN_MYCEL_SCHICHTEN.md) ----
+  // Der Frage-Zettel trägt jetzt dieselbe spore + sig wie der Antwort-Zettel;
+  // zettelSignieren/zettelPruefen dienen beiden. Der Antworter prüft die Frage:
+  //   bestaetigt   → beantwortet (Rate-Limit RDV_QUERY_MAX_PER_MIN)
+  //   unbestaetigt → alte Fassung ohne spore/sig: weiter beantwortet, aber nur
+  //                  RDV_QUERY_UNSIGNED_MAX_PER_MIN davon je Minute
+  //   falsch       → nicht beantwortet, gezählt in _meta.frageVerworfen
+  function antwortOhneSig(a) {
+    var o = {};
+    for (var key in a) { if (Object.prototype.hasOwnProperty.call(a, key) && key !== "sig") o[key] = a[key]; }
+    return o;
+  }
+  async function zettelSignieren(zettel) {
+    var s = resolveSpore();
+    if (!s || typeof s.signDetached !== "function") return zettel;     // fail-soft: unsigniert
+    try {
+      var own = await s.getOwnSpore();
+      if (!own || own.id !== zettel.fromNodeId) return zettel;
+      zettel.spore = own;
+      zettel.sig = await s.signDetached(antwortOhneSig(zettel));
+    } catch (_e) { delete zettel.spore; delete zettel.sig; }
+    return zettel;
+  }
+  async function zettelPruefen(a, erwartetVon) {
+    if (erwartetVon && a.fromNodeId !== erwartetVon) return "falsch";
+    if (typeof a.sig !== "string" || !a.spore || typeof a.spore !== "object") {
+      return (a.sig === undefined && a.spore === undefined) ? "unbestaetigt" : "falsch";
+    }
+    var v = resolveVerifier();
+    if (!v || typeof v.verifyDetached !== "function") return "unbestaetigt";   // nicht prüfbar
+    if (a.spore.id !== a.fromNodeId) return "falsch";
+    try {
+      var vr = await v.verifyForeignSpore(a.spore);
+      if (!(vr === true || (vr && vr.valid === true))) return "falsch";
+      return (await v.verifyDetached(antwortOhneSig(a), a.sig, a.spore.publicKey)) ? "bestaetigt" : "falsch";
+    } catch (_e) { return "falsch"; }
+  }
+  function ergebnisseLesen(a) {
+    return (Array.isArray(a.results) ? a.results : []).slice(0, RDV_QUERY_K_MAX).map(function (r) {
+      var o = { label: String((r && r.label) || "").slice(0, RDV_LABEL_MAX), score: (r && typeof r.score === "number") ? r.score : null };
+      if (r && typeof r.anchorId === "string" && r.anchorId) o.anchorId = r.anchorId.slice(0, 120);
+      return o;
+    });
+  }
+  var antwortVerworfen = 0;            // _meta: wie viele Antworten die Prüfung nicht bestanden
+  var frageVerworfen = 0, fragenBestaetigt = 0, fragenUnbestaetigt = 0;   // _meta (S1)
 
   var answerUnsub = null;            // aktiver Antwort-Lauscher (null = AUS)
   var answeredCount = 0;
@@ -836,10 +1488,17 @@
     seenQids.push(qid);
     if (seenQids.length > 200) seenQids.splice(0, seenQids.length - 200);
   }
-  function underRateLimit() {
+  function forgetQid(qid) {
+    var i = seenQids.indexOf(qid);
+    if (i !== -1) seenQids.splice(i, 1);
+  }
+  // answerTimestamps: [{ t: ms, u: unsigniert? }]
+  function underRateLimit(unsigniert) {
     var cut = Date.now() - 60000;
-    answerTimestamps = answerTimestamps.filter(function (t) { return t > cut; });
-    return answerTimestamps.length < RDV_QUERY_MAX_PER_MIN;
+    answerTimestamps = answerTimestamps.filter(function (e) { return e.t > cut; });
+    if (answerTimestamps.length >= RDV_QUERY_MAX_PER_MIN) return false;
+    if (!unsigniert) return true;
+    return answerTimestamps.filter(function (e) { return e.u; }).length < RDV_QUERY_UNSIGNED_MAX_PER_MIN;
   }
 
   // ---- enableAnswering(): Antwortrecht bewusst einschalten ----
@@ -848,6 +1507,9 @@
     if (answerUnsub) return { ok: true, reason: "Antworten läuft schon (idempotent)." };
     var relay = resolveRelay();
     if (!relay) return { ok: false, reason: "Kein Nostr-Relais-Client (Modul 05b) verfügbar." };
+    var nbA = await netBereit();
+    if (!nbA.ok) return { ok: false, reason: nbA.reason };
+    var fragTagA = netFragen();
     var own = await getOwnLiveSpore();
     if (!own || !own.id) return { ok: false, reason: "Noch keine Identität — zuerst anmelden (announce)." };
     var ownId = own.id;
@@ -855,7 +1517,7 @@
     // eine FRISCHE Präsenz-Karte unter GENAU dieser lauschenden ID ans Brett
     // heften. So ist die neueste Karte im Raum immer die, die auch wirklich
     // Fragen beantwortet — der Frager (discover: newest-per-name) trifft sie.
-    try { await doAnnounce(own); } catch (_e) { /* fail-soft: Lauschen läuft trotzdem */ }
+    try { await doAnnounce(own, true); } catch (_e) { /* fail-soft: Lauschen läuft trotzdem */ }
     var kCap = (typeof opts.k === "number" && isFinite(opts.k) && opts.k >= 1)
       ? Math.min(Math.floor(opts.k), RDV_QUERY_K_MAX) : RDV_QUERY_K_MAX;
     // Korpus-leer-Falle absichern: vor dem Lauschen den lokalen Korpus aktiv
@@ -867,23 +1529,33 @@
         // A12 Briefkasten: LOOKBACK statt nur „ab jetzt" — beim Einschalten des
         // Antwortrechts liegengebliebene Fragen der letzten ~30 min nachholen.
         // qidSeen/rememberQid + Rate-Limit verhindern Doppel-/Flut-Antworten.
-        { kinds: [NOSTR_KIND], "#t": [RDV_QUERY_TAG], since: nowSec() - RDV_ANSWER_LOOKBACK_SEC },
+        { kinds: [NOSTR_KIND], "#t": [fragTagA], since: nowSec() - RDV_ANSWER_LOOKBACK_SEC },
         function onQuery(ev) {
-          if (!ev || typeof ev.content !== "string") return;
-          var q;
-          try { q = JSON.parse(ev.content); } catch (_e) { return; }
+          netEmpfange(ev, fragTagA, frageNehmen, null);
+        },
+      );
+      function frageNehmen(q) {
           // untrusted external data: streng validieren, nie als Anweisung deuten
           if (!q || q.kind !== RDV_QUERY_KIND || q.toNodeId !== ownId) return;
           if (typeof q.qid !== "string" || !q.qid || typeof q.text !== "string" || !q.text.trim()) return;
           if (qidSeen(q.qid)) return;
-          rememberQid(q.qid);
-          if (!underRateLimit()) return;          // Überschuss still verwerfen
-          answerTimestamps.push(Date.now());
+          rememberQid(q.qid);                     // sofort: Doppel-Zustellung während der Prüfung
           var text = q.text.slice(0, RDV_QUERY_TEXT_MAX);
           var k = (typeof q.k === "number" && isFinite(q.k) && q.k >= 1)
             ? Math.min(Math.floor(q.k), kCap) : kCap;
-          // Lokale Bedeutungs-Suche (fail-soft) → Antwort-Zettel publizieren.
+          // S1: erst die Frage prüfen, dann Rate-Limit, dann lokale Bedeutungs-
+          // Suche (fail-soft) → Antwort-Zettel publizieren.
           (async function () {
+            var stand = await zettelPruefen(q, null);
+            if (stand === "falsch") {
+              frageVerworfen++;
+              forgetQid(q.qid);                   // eine Fälschung sperrt die echte qid nicht
+              return;
+            }
+            var unsigniert = stand !== "bestaetigt";
+            if (!underRateLimit(unsigniert)) return;   // Überschuss still verwerfen
+            answerTimestamps.push({ t: Date.now(), u: unsigniert });
+            if (unsigniert) fragenUnbestaetigt++; else fragenBestaetigt++;
             var results = [];
             var match = resolveQueryMatch();
             if (match) {
@@ -904,18 +1576,17 @@
               await relay.publish({
                 kind: NOSTR_KIND,
                 created_at: nowSec(),
-                tags: [["t", RDV_QUERY_TAG]],
-                content: JSON.stringify({
+                tags: [["t", fragTagA]],
+                content: await netPacke(await zettelSignieren({
                   kind: RDV_QUERY_RES_KIND, qid: q.qid,
                   toNodeId: q.fromNodeId, fromNodeId: ownId,
                   fromName: cfg.nodeName, results: results, ts: nowSec(),
-                }),
+                }), fragTagA),
               });
               answeredCount++;
             } catch (_e) { /* fail-soft: Antwort verloren, kein Bruch */ }
           })();
-        },
-      );
+      }
     } catch (e) {
       answerUnsub = null;
       return { ok: false, reason: "Antwort-Lauscher fehlgeschlagen: " + (e && e.message ? e.message : e) };
@@ -952,6 +1623,9 @@
     if (typeof text !== "string" || !text.trim()) return { ok: false, reason: "Leere Frage." };
     var relay = resolveRelay();
     if (!relay) return { ok: false, reason: "Kein Nostr-Relais-Client (Modul 05b) verfügbar." };
+    var nbQ = await netBereit();
+    if (!nbQ.ok) return { ok: false, reason: nbQ.reason };
+    var fragTagQ = netFragen();
     var own = await getOwnLiveSpore();
     if (!own || !own.id) return { ok: false, reason: "Noch keine Identität — zuerst anmelden (announce)." };
     var ownId = own.id;
@@ -974,37 +1648,49 @@
       // Erst auf die Antwort lauschen, dann fragen (kein Fenster verpassen).
       try {
         unsub = relay.subscribe(
-          { kinds: [NOSTR_KIND], "#t": [RDV_QUERY_TAG], since: nowSec() - 5 },
+          { kinds: [NOSTR_KIND], "#t": [fragTagQ], since: nowSec() - 5 },
           function onRes(ev) {
-            if (!ev || typeof ev.content !== "string") return;
-            var a;
-            try { a = JSON.parse(ev.content); } catch (_e) { return; }
-            if (!a || a.kind !== RDV_QUERY_RES_KIND || a.qid !== qid || a.toNodeId !== ownId) return;
-            var results = (Array.isArray(a.results) ? a.results : []).slice(0, RDV_QUERY_K_MAX)
-              .map(function (r) {
-                var o = { label: String((r && r.label) || ""), score: (r && typeof r.score === "number") ? r.score : null };
-                if (r && typeof r.anchorId === "string" && r.anchorId) o.anchorId = r.anchorId;
-                return o;
-              });
-            finish({ ok: true, qid: qid, results: results, fromNodeId: a.fromNodeId || null, tookMs: Date.now() - started });
+            netEmpfange(ev, fragTagQ, antwortNehmen, null);
           },
         );
+        // Bau 23.R: nur der GEFRAGTE Knoten, und eine unterschriebene Antwort
+        // schlägt jede unbestätigte (siehe zettelPruefen).
+        var vorlaeufig = null, graceTimer = null;
+        function antwortNehmen(a) {
+            if (!a || a.kind !== RDV_QUERY_RES_KIND || a.qid !== qid || a.toNodeId !== ownId) return;
+            zettelPruefen(a, toNodeId).then(function (stand) {
+              if (done) return;
+              if (stand === "falsch") { antwortVerworfen++; return; }
+              var res = { ok: true, qid: qid, results: ergebnisseLesen(a), fromNodeId: a.fromNodeId || null,
+                          bestaetigt: stand === "bestaetigt", tookMs: Date.now() - started };
+              if (stand === "bestaetigt") { if (graceTimer) clearTimeout(graceTimer); finish(res); return; }
+              if (!vorlaeufig) {
+                vorlaeufig = res;
+                graceTimer = setTimeout(function () { finish(vorlaeufig); }, RDV_UNBESTAETIGT_WARTE_MS);
+              }
+            });
+        }
       } catch (e) {
         finish({ ok: false, reason: "Antwort-Lauscher fehlgeschlagen: " + (e && e.message ? e.message : e) });
         return;
       }
-      Promise.resolve(relay.publish({
-        kind: NOSTR_KIND,
-        created_at: nowSec(),
-        tags: [["t", RDV_QUERY_TAG]],
-        content: JSON.stringify({
-          kind: RDV_QUERY_KIND, qid: qid, toNodeId: toNodeId, fromNodeId: ownId,
-          fromName: cfg.nodeName, text: text.trim().slice(0, RDV_QUERY_TEXT_MAX), k: k, ts: nowSec(),
-        }),
-      })).catch(function (e) {
+      zettelSignieren({                       // S1: die Frage trägt spore + sig
+        kind: RDV_QUERY_KIND, qid: qid, toNodeId: toNodeId, fromNodeId: ownId,
+        fromName: cfg.nodeName, text: text.trim().slice(0, RDV_QUERY_TEXT_MAX), k: k, ts: nowSec(),
+      }).then(function (zettel) {
+        return netPacke(zettel, fragTagQ);
+      }).then(function (inhalt) {
+        return relay.publish({
+          kind: NOSTR_KIND,
+          created_at: nowSec(),
+          tags: [["t", fragTagQ]],
+          content: inhalt,
+        });
+      }).catch(function (e) {
         finish({ ok: false, reason: "Frage-Zettel konnte nicht publiziert werden: " + (e && e.message ? e.message : e) });
       });
       timer = setTimeout(function () {
+        if (vorlaeufig) { if (graceTimer) clearTimeout(graceTimer); finish(vorlaeufig); return; }
         // A12: qid mitgeben — der Frager merkt die Frage als „offen" und liest
         // die Antwort später über fetchAnswers([qid]) nach (Briefkasten).
         finish({ ok: false, pending: true, qid: qid, reason: "Noch keine Antwort in " + Math.round(timeoutMs / 1000) + " s — Gegenknoten evtl. offline. Die Frage bleibt offen; beim nächsten Öffnen „Antworten abholen“." });
@@ -1020,11 +1706,22 @@
   // Reale Grenze: Aufbewahrungsdauer des Relais. Fail-soft, DOM-frei.
   async function fetchAnswers(qids, opts) {
     opts = (opts && typeof opts === "object") ? opts : {};
+    // Bau 23.R: qids = Strings ODER {qid, toNodeId}. Mit toNodeId wird nur die
+    // Antwort genau dieses Knotens genommen.
     var want = {};
-    (Array.isArray(qids) ? qids : []).forEach(function (id) { if (typeof id === "string" && id) want[id] = true; });
+    (Array.isArray(qids) ? qids : []).forEach(function (id) {
+      if (typeof id === "string" && id) want[id] = { von: null };
+      else if (id && typeof id === "object" && typeof id.qid === "string" && id.qid) {
+        want[id.qid] = { von: (typeof id.toNodeId === "string" && id.toNodeId) ? id.toNodeId : null };
+      }
+    });
     if (!Object.keys(want).length) return { ok: true, answers: [] };
     var relay = resolveRelay();
     if (!relay) return { ok: false, reason: "Kein Nostr-Relais-Client (Modul 05b) verfügbar.", answers: [] };
+    var nbF = await netBereit();
+    if (!nbF.ok) return { ok: false, reason: nbF.reason, answers: [] };
+    var fragTagF = netFragen();
+    var wartenF = [];
     var own = await getOwnLiveSpore();
     if (!own || !own.id) return { ok: false, reason: "Noch keine Identität — zuerst anmelden.", answers: [] };
     var ownId = own.id;
@@ -1034,33 +1731,43 @@
       ? Math.floor(opts.waitMs) : cfg.listenMs;
     return await new Promise(function (resolve) {
       var byQid = {}, unsub = null, timer = null, done = false;
-      function finish() {
+      async function finish() {
         if (done) return; done = true;
         if (timer) clearTimeout(timer);
         if (unsub) { try { unsub(); } catch (_e) {} }
+        // Bau 23.R: die Prüfung einer Antwort hängt sich erst NACH dem Entschlüsseln an —
+        // so lange warten, bis keine neue mehr dazukommt.
+        for (var wn = -1; wn !== wartenF.length;) { wn = wartenF.length; try { await Promise.all(wartenF.slice()); } catch (_e) {} }
         var out = Object.keys(byQid).map(function (q) { return byQid[q]; });
         resolve({ ok: true, answers: out });
       }
       try {
         unsub = relay.subscribe(
-          { kinds: [NOSTR_KIND], "#t": [RDV_QUERY_TAG], since: nowSec() - lookbackSec },
+          { kinds: [NOSTR_KIND], "#t": [fragTagF], since: nowSec() - lookbackSec },
           function onRes(ev) {
-            if (!ev || typeof ev.content !== "string") return;
-            var a; try { a = JSON.parse(ev.content); } catch (_e) { return; }
+            netEmpfange(ev, fragTagF, antwortSammeln, wartenF);
+          },
+        );
+        function antwortSammeln(a) {
             if (!a || a.kind !== RDV_QUERY_RES_KIND) return;      // nur Antwort-Zettel
             if (a.toNodeId !== ownId) return;                     // nur an mich
             if (typeof a.qid !== "string" || !want[a.qid]) return; // nur meine offenen Fragen
-            var ts = (typeof a.ts === "number") ? a.ts : 0;
-            var prev = byQid[a.qid];
-            if (prev && typeof prev.ts === "number" && prev.ts >= ts) return; // newest-per-qid
-            var results = (Array.isArray(a.results) ? a.results : []).slice(0, RDV_QUERY_K_MAX).map(function (r) {
-              var o = { label: String((r && r.label) || ""), score: (r && typeof r.score === "number") ? r.score : null };
-              if (r && typeof r.anchorId === "string" && r.anchorId) o.anchorId = r.anchorId;
-              return o;
+            var p = zettelPruefen(a, want[a.qid].von).then(function (stand) {
+              if (stand === "falsch") { antwortVerworfen++; return; }
+              var best = stand === "bestaetigt";
+              var ts = (typeof a.ts === "number") ? a.ts : 0;
+              var prev = byQid[a.qid];
+              // Bau 23.R: bestätigt schlägt unbestätigt, egal welche Zeit; erst
+              // innerhalb derselben Stufe gilt die neueste (newest-per-qid).
+              if (prev) {
+                if (prev.bestaetigt && !best) return;
+                if (prev.bestaetigt === best && typeof prev.ts === "number" && prev.ts >= ts) return;
+              }
+              byQid[a.qid] = { qid: a.qid, fromNodeId: a.fromNodeId || null, fromName: a.fromName || null,
+                               results: ergebnisseLesen(a), ts: ts, bestaetigt: best };
             });
-            byQid[a.qid] = { qid: a.qid, fromNodeId: a.fromNodeId || null, fromName: a.fromName || null, results: results, ts: ts };
-          },
-        );
+            wartenF.push(p);
+        }
       } catch (e) {
         resolve({ ok: false, reason: "Nachlese-Lauscher fehlgeschlagen: " + (e && e.message ? e.message : e), answers: [] });
         return;
@@ -1082,14 +1789,33 @@
     askNode: askNode,                   // Bau 23.B — nutzer-ausgelöste Cross-Knoten-Frage
     fetchAnswers: fetchAnswers,         // A12 Briefkasten — späte Antworten nachlesen (Lookback)
     relatednessForCards: relatednessForCards, // pure (cards, ownSpore) → angereicherte Liste; reine Anzeige
-    rankCardsByQuery: rankCardsByQuery,       // A11 — pure (cards, queryVec) → nach Frage-Passung sortiert; reine Anzeige/Auswahl
+    rankCardsByQuery: rankCardsByQuery,
+    checkMeaning: checkMeaning,               // S2 — (spore) → {status, score, snippets, reason}; reine Anzeige       // A11 — pure (cards, queryVec) → nach Frage-Passung sortiert; reine Anzeige/Auswahl
+    vouchTrust: vouchTrust,                   // S5 — (cards, opts) → je Karte `vouch`; reine Anzeige
+    createVouch: createVouch,                 // S5 — Bürgschaft ausstellen (eigene Identität)
+    createRevocation: createRevocation,       // S5 — Bürgschaft widerrufen
+    addCarried: addCarried,                   // S5 — erhaltene Bürgschaft / eigenen Widerruf mittragen
+    loadVouchContacts: loadVouchContacts,     // S5 — eigene Kontakte (Wurzeln)
+    saveVouchContacts: saveVouchContacts,     // S5
     ensureIdentity: ensureIdentity,             // Modus A (sanft, automatisch, idempotent)
     cleanupSharedOrigin: cleanupSharedOrigin,   // Modus-B-Reinigung (nur eigene Origin)
     repairAndReconnect: repairAndReconnect,     // Modus B (zerstörend, nutzer-ausgelöst)
+    // Eigenes Netz (Schritt 1, 2026-10-13) — INTERFACES §Modul 23 „EIGENES NETZ"
+    setNetwork: setNetwork,
+    newNetCode: newNetCode,
+    checkNetSetting: checkNetSetting,
+    loadNetwork: loadNetwork,
+    readNetwork: readNetwork,
+    saveNetwork: saveNetwork,
+    clearNetwork: clearNetwork,
+    applyNetwork: applyNetwork,
     get _meta() {
       return {
         version: VERSION,
-        tag: RDV_TAG,
+        tag: netRaum(),
+        network: net.lage,
+        encrypted: !!net.key,
+        networkReason: net.reason || null,
         presenceKind: RDV_PRESENCE_KIND,
         sharedDbName: SHARED_DB_NAME,
         dbSuffix: cfg.dbSuffix,
@@ -1116,10 +1842,21 @@
         answeredCount: answeredCount,             // Bau 23.B
         hasPrepareCorpus: typeof cfg.prepareCorpus === "function", // Bau 23.B-Härtung
         answerCorpusEnsured: answerCorpusEnsured,  // Bau 23.B-Härtung (Korpus gekoppelt?)
-        queryTag: RDV_QUERY_TAG,                  // Bau 23.B
+        queryTag: netFragen(),                    // Bau 23.B (im eigenen Netz abgeleitet)
         queryKind: RDV_QUERY_KIND,                // Bau 23.B
         queryResKind: RDV_QUERY_RES_KIND,         // Bau 23.B
         queryMaxPerMin: RDV_QUERY_MAX_PER_MIN,    // Bau 23.B
+        antwortVerworfen: antwortVerworfen,       // Bau 23.R: Antworten, die die Prüfung nicht bestanden
+        frageVerworfen: frageVerworfen,           // S1: Fragen, die die Prüfung nicht bestanden
+        fragenBestaetigt: fragenBestaetigt,       // S1: beantwortete unterschriebene Fragen
+        fragenUnbestaetigt: fragenUnbestaetigt,   // S1: beantwortete Fragen ohne Unterschrift
+        queryUnsignedMaxPerMin: RDV_QUERY_UNSIGNED_MAX_PER_MIN, // S1
+        antwortSigniert: (function () { var s = resolveSpore(); return !!(s && typeof s.signDetached === "function"); })(), // Bau 23.R
+        labelMax: RDV_LABEL_MAX,
+        meaningMin: RDV_MEANING_MIN,              // S2
+        vouchChainMax: RDV_VOUCH_CHAIN_MAX,       // S5
+        vouchTtlSec: RDV_VOUCH_TTL_SEC,           // S5
+        vouchAnchors: idListe(RDV_VOUCH_ANCHORS).length + idListe(vouchCfg.anchors).length, // S5                  // Bau 23.R
         rankByQueryNote: "rankCardsByQuery(cards, queryVec, {raw?}) rankt Raum-Karten nach Frage-Passung (Modul 04 relatedness, zentriert; raw→match). REINE Anzeige/Auswahl, gatet nichts, 0.80-Riegel unberührt; fail-soft ohne Vektor → Eingabe-Reihenfolge.", // A11
       };
     },

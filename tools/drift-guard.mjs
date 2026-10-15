@@ -22,17 +22,17 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const ERWARTET = [
   { datei: "modules/01_storage.js",          sha: "5a5a4bf64dfcc107da7ed70fb755d7db5cce7d80e963b3e2fbc2004537747820" },
-  { datei: "modules/02_spore.js",            sha: "6789fe6e903ad2e53f39b2dee576c640698555ef71ef4e9134eb75573fdb7d68" },
+  { datei: "modules/02_spore.js",            sha: "0cbf0664e2a79f1301c03e52f7ac0030d4b2961f03b97b38e8634827a52353c5" },
   { datei: "modules/03_embedding.js",        sha: "e4bb8bd6a237914e7841cab5165912daf636adf0ee90c5d4ffd0c74cc5d706e5" },
   { datei: "modules/04_match.js",            sha: "5de95923c3f62f141e94f576feebcac0eecc55c60e40b564540a56420436a4cd" },
   { datei: "modules/05_anastomose.js",       sha: "255ac79aeb3b0203e92f0cebd0a905e47c488b43efe18f41332a7d35520bbf23" },
-  { datei: "modules/05b_nostr_relay.js",     sha: "030aa2d260149f5627b84694a0b55e916cc186158009e260117d1e4f60d429bd" },
+  { datei: "modules/05b_nostr_relay.js",     sha: "37eee5b196b3efad57131edd1cc3c0ee23acb97b5ca40740d6a0771db4b4a421" },
   { datei: "modules/07_apoptose.js",         sha: "0acdd6ab2d95e131fa6953061cc0e95a2396e05fff091a7dc690b2668a4c035a" },
   { datei: "modules/15_membran.js",          sha: "829a5bc01976b59c5ce428125314b87b314b6212cd5a473634c2d22c02579397" },
-  { datei: "modules/16_siegel.js",           sha: "d84fa539e76e0cc54c956b648fcb1505f08843662d97854dc1a95e6ab65b7e25" },
+  { datei: "modules/16_siegel.js",           sha: "853e60807e14c627b28001f53ffcb3bf30b26ae7b319ee7007af50eb2baddf3e" },
   { datei: "modules/17_floating_widget.js",  sha: "e4ee076c1295910d0e83470ebda327e7419f29bc06f6718148369c8369e1a5ce" },
-  { datei: "modules/23_rendezvous.js",       sha: "3caa0bb1fbe7bf5293c90b6a59a74cccf8600bff45095a892b1f048244c61fcf" },
-  { datei: "modules/23_rendezvous_ui.js",    sha: "fc47f16b24d5c5f69eb4b53ca0079ec9f289ae023bede17954297f048fefe1f7" },
+  { datei: "modules/23_rendezvous.js",       sha: "bc8cc295b4490e03c504ff8eda4ba46468b1b8a815eb16e92ec732091bce7807" },
+  { datei: "modules/23_rendezvous_ui.js",    sha: "828855bbbc0e67bf028a2320d68971585551215e6b2ecbc5385f211b0a5ed580" },
   { datei: "modules/noble-secp256k1.js",     sha: "8f3879ca422c4fdfe7ca0361688636fa7cc550a59bd94d512ed6ec79aa3d55d1" },
 ];
 
