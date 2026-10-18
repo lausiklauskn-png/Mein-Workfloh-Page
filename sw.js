@@ -7,7 +7,7 @@
      v5  Fußzeilen-Wort auf eine kontraststarke Marken-Abstufung
    Ohne die Erhöhung liefert der Vorrat jedem Wiederbesucher weiter die alte
    Fassung — und eine neue Messung sähe unverändert aus. */
-const CACHE = 'werbetechnik-page-v34';
+const CACHE = 'werbetechnik-page-v35';
 
 /* ⚠ NUR EIGENE VORRAETE AUFRAEUMEN — `caches` gehoert dem URSPRUNG, nicht dem
  * Pfad. Auf lausiklauskn-png.github.io liegen rund zwanzig Apps; ein Filter,
@@ -28,7 +28,7 @@ const VORRAT_PRAEFIX = "werbetechnik-page-";
    ersten Aufbau, der Service Worker legt erst danach los. Es spart echten
    Besuchern Datenvolumen — mehr nicht, aber auch nicht weniger. */
 const ASSETS = [
-  './', 'index.html', 'effects.js', 'manifest.webmanifest',
+  './', 'index.html', 'assets/installieren.js?v=1', 'effects.js', 'manifest.webmanifest',
   'assets/mycel-bg.js',
   'icon-192.png', 'icon-512.png', 'icon-512-maskable.png',
   /* Die SBKIM-Kette gehört in den Vorrat. Ohne sie ist das Netz-Fenster
